@@ -3,7 +3,6 @@ from fastapi import APIRouter
 from agents.orchestrator.graph import orchestrator
 from app.schemas.chat import ChatRequest, ChatResponse
 
-
 router = APIRouter(
     prefix="/api/ai",
     tags=["AI"],
@@ -25,19 +24,22 @@ def build_ai_response(result: dict) -> str:
             "Please tell me what you need."
         )
 
-    # Product was not found
     if sales_result and not sales_result.get("success"):
         message = sales_result.get("message")
 
         if message == "Insufficient stock":
             available = sales_result.get("available", 0)
-            requested = sales_result.get("requested", intent.quantity)
+            requested = sales_result.get(
+                "requested",
+                intent.quantity,
+            )
             shortage = sales_result.get("shortage", 0)
 
             return (
                 f"Sorry, only {available} units are available, "
                 f"but you requested {requested}. "
-                f"We are short by {shortage} units."
+                f"We are short by {shortage} units. "
+                f"Recommended restock: {shortage} units."
             )
 
         return sales_result.get(
@@ -45,7 +47,6 @@ def build_ai_response(result: dict) -> str:
             "I could not process the product request.",
         )
 
-    # Inventory shortage
     if inventory_result and not inventory_result.get("sufficient"):
         shortage = inventory_result.get("shortage", 0)
 
@@ -55,13 +56,27 @@ def build_ai_response(result: dict) -> str:
             f"I recommend restocking {shortage} units."
         )
 
-    # Order successfully created
     if order_result and order_result.get("success"):
-        product = sales_result.get("product", intent.product)
+        product = sales_result.get(
+            "product",
+            intent.product,
+        )
+
         quantity = intent.quantity
-        total = sales_result.get("total_amount", 0)
-        order_number = order_result.get("order_number")
-        city = intent.delivery_city or order_result.get("delivery_city")
+
+        total = sales_result.get(
+            "total_amount",
+            0,
+        )
+
+        order_number = order_result.get(
+            "order_number"
+        )
+
+        city = (
+            intent.delivery_city
+            or order_result.get("delivery_city")
+        )
 
         return (
             f"Order {order_number} is ready for approval. "
@@ -69,11 +84,18 @@ def build_ai_response(result: dict) -> str:
             f"Delivery: {city}."
         )
 
-    # Sales result without order
     if sales_result.get("success"):
-        product = sales_result.get("product", intent.product)
+        product = sales_result.get(
+            "product",
+            intent.product,
+        )
+
         quantity = intent.quantity
-        total = sales_result.get("total_amount", 0)
+
+        total = sales_result.get(
+            "total_amount",
+            0,
+        )
 
         return (
             f"{quantity} × {product} is available. "
@@ -97,6 +119,63 @@ def chat(request: ChatRequest):
 
     ai_message = build_ai_response(result)
 
+    restock_recommendation = None
+
+    sales_result = result.get("sales_result", {})
+    inventory_result = result.get("inventory_result", {})
+
+    if (
+        sales_result
+        and not sales_result.get("success")
+        and sales_result.get("message") == "Insufficient stock"
+    ):
+        available = sales_result.get("available", 0)
+        requested = sales_result.get(
+            "requested",
+            intent.quantity or 0,
+        )
+        shortage = sales_result.get("shortage", 0)
+
+        restock_recommendation = {
+            "product_id": sales_result.get("product_id"),
+            "product": sales_result.get(
+                "product",
+                intent.product,
+            ),
+            "sku": sales_result.get("sku", ""),
+            "current_quantity": available,
+            "requested_quantity": requested,
+            "shortage": shortage,
+            "recommended_quantity": shortage,
+            "reason": f"Short by {shortage} units",
+        }
+
+    elif (
+        inventory_result
+        and not inventory_result.get("sufficient")
+    ):
+        shortage = inventory_result.get("shortage", 0)
+
+        restock_recommendation = {
+            "product_id": inventory_result.get("product_id"),
+            "product": inventory_result.get(
+                "product",
+                intent.product,
+            ),
+            "sku": inventory_result.get("sku", ""),
+            "current_quantity": inventory_result.get(
+                "available",
+                0,
+            ),
+            "requested_quantity": inventory_result.get(
+                "requested",
+                intent.quantity or 0,
+            ),
+            "shortage": shortage,
+            "recommended_quantity": shortage,
+            "reason": f"Short by {shortage} units",
+        }
+
     return ChatResponse(
         success=True,
         message=ai_message,
@@ -108,4 +187,5 @@ def chat(request: ChatRequest):
         quantity=intent.quantity,
         delivery_city=intent.delivery_city,
         next_agent=next_agent,
+        restock_recommendation=restock_recommendation,
     )

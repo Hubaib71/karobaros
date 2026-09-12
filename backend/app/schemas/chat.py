@@ -6,6 +6,17 @@ class ChatRequest(BaseModel):
     customer_id: int = 1
 
 
+class RestockRecommendation(BaseModel):
+    product_id: int
+    product: str
+    sku: str
+    current_quantity: int
+    requested_quantity: int
+    shortage: int
+    recommended_quantity: int
+    reason: str
+
+
 class ChatResponse(BaseModel):
     success: bool
     message: str
@@ -17,3 +28,4 @@ class ChatResponse(BaseModel):
     quantity: int | None = None
     delivery_city: str | None = None
     next_agent: str | None = None
+    restock_recommendation: RestockRecommendation | None = None
