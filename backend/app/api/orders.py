@@ -203,3 +203,38 @@ def approve_order(
             "status": invoice.status,
         },
     }
+
+@router.post("/{order_id}/reject")
+def reject_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    order = db.query(Order).filter(Order.id == order_id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found",
+        )
+
+    if order.status != "pending_approval":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Order cannot be rejected. Current status: {order.status}",
+        )
+
+    order.status = "rejected"
+
+    db.commit()
+    db.refresh(order)
+
+    return {
+        "success": True,
+        "message": "Order rejected successfully",
+        "order": {
+            "id": order.id,
+            "order_number": order.order_number,
+            "status": order.status,
+            "total_amount": float(order.total_amount),
+        },
+    }

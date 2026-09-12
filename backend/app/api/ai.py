@@ -20,8 +20,8 @@ def build_ai_response(result: dict) -> str:
 
     if intent.intent == "unknown":
         return (
-            "I can help with products, inventory, orders, and sales. "
-            "Please tell me what you need."
+            "Ji, main products, inventory aur orders mein help kar sakta hoon. "
+            "Please product, quantity aur size bata dein."
         )
 
     if sales_result and not sales_result.get("success"):
@@ -29,16 +29,18 @@ def build_ai_response(result: dict) -> str:
 
         if message == "Insufficient stock":
             available = sales_result.get("available", 0)
-            requested = sales_result.get(
-                "requested",
-                intent.quantity,
-            )
+            requested = sales_result.get("requested", intent.quantity)
             shortage = sales_result.get("shortage", 0)
 
+            product = sales_result.get(
+                "product",
+                intent.product,
+            )
+
             return (
-                f"Sorry, only {available} units are available, "
-                f"but you requested {requested}. "
-                f"We are short by {shortage} units. "
+                f"Sorry, {product} ke sirf {available} units available hain. "
+                f"Aap ne {requested} units request ki hain, is liye "
+                f"{shortage} units ki kami hai. "
                 f"Recommended restock: {shortage} units."
             )
 
@@ -51,9 +53,9 @@ def build_ai_response(result: dict) -> str:
         shortage = inventory_result.get("shortage", 0)
 
         return (
-            f"Stock is insufficient. "
-            f"We are short by {shortage} units. "
-            f"I recommend restocking {shortage} units."
+            f"Stock insufficient hai. "
+            f"{shortage} units ki kami hai. "
+            f"Main {shortage} units restock karne ki recommendation deta hoon."
         )
 
     if order_result and order_result.get("success"):
@@ -70,18 +72,21 @@ def build_ai_response(result: dict) -> str:
         )
 
         order_number = order_result.get(
-            "order_number"
+            "order_number",
+            "N/A",
         )
 
         city = (
             intent.delivery_city
             or order_result.get("delivery_city")
+            or "customer location"
         )
 
         return (
-            f"Order {order_number} is ready for approval. "
-            f"{quantity} × {product} for Rs. {total:,.0f}. "
-            f"Delivery: {city}."
+            f"Ji, {quantity} × {product} available hain. "
+            f"Total Rs. {total:,.0f} hai. "
+            f"{city} delivery ke liye order {order_number} "
+            f"approval ke liye ready hai."
         )
 
     if sales_result.get("success"):
@@ -98,8 +103,8 @@ def build_ai_response(result: dict) -> str:
         )
 
         return (
-            f"{quantity} × {product} is available. "
-            f"Total: Rs. {total:,.0f}."
+            f"Ji, {quantity} × {product} available hain. "
+            f"Total Rs. {total:,.0f} hai."
         )
 
     return "Your request was processed."

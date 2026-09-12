@@ -61,6 +61,9 @@ useState(true);
 const [approvingOrderId, setApprovingOrderId] =
 useState<number | null>(null);
 
+const [rejectingOrderId, setRejectingOrderId] =
+useState<number | null>(null);
+
 const [approvalMessage, setApprovalMessage] =
 useState("");
 
@@ -135,6 +138,51 @@ fetch(
 useEffect(() => {
 loadDashboard();
 }, []);
+
+async function rejectOrder(orderId: number) {
+  if (rejectingOrderId !== null) {
+    return;
+  }
+
+  setRejectingOrderId(orderId);
+  setApprovalMessage("");
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/orders/${orderId}/reject`,
+      {
+        method: "POST",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail || "Failed to reject order"
+      );
+    }
+
+    setApprovalMessage(
+      `Order ${data.order.order_number} rejected successfully.`
+    );
+
+    await loadDashboard();
+  } catch (error) {
+    console.error(
+      "Failed to reject order:",
+      error
+    );
+
+    setApprovalMessage(
+      error instanceof Error
+        ? error.message
+        : "Failed to reject order."
+    );
+  } finally {
+    setRejectingOrderId(null);
+  }
+}
 
 async function approveOrder(orderId: number) {
 if (approvingOrderId !== null) {
@@ -624,7 +672,10 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
                                 order.status ===
                                 "approved"
                                   ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-amber-50 text-amber-700"
+                                  : order.status ===
+                                  "rejected"
+                                    ? "bg-red-50 text-red-700"
+                                    : "bg-amber-50 text-amber-700"
                               )
                             }
                           >
@@ -641,24 +692,45 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
                           {order.status ===
                           "pending_approval" ? (
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                approveOrder(
-                                  order.id
-                                )
-                              }
-                              disabled={
-                                approvingOrderId ===
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  approveOrder(
+                                    order.id
+                                  )
+                                }
+                                disabled={
+                                  approvingOrderId !== null ||
+                                  rejectingOrderId !== null
+                                }
+                                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {approvingOrderId ===
                                 order.id
-                              }
-                              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {approvingOrderId ===
-                              order.id
-                                ? "Approving..."
-                                : "Approve"}
-                            </button>
+                                  ? "Approving..."
+                                  : "Approve"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  rejectOrder(
+                                    order.id
+                                  )
+                                }
+                                disabled={
+                                  approvingOrderId !== null ||
+                                  rejectingOrderId !== null
+                                }
+                                className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {rejectingOrderId ===
+                                order.id
+                                  ? "Rejecting..."
+                                  : "Reject"}
+                              </button>
+                            </div>
 
                           ) : (
 
