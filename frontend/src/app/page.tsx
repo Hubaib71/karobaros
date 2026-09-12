@@ -226,7 +226,7 @@ return;
 
 setApprovingOrderId(orderId);
 setApprovalMessage("");
-
+setActiveAgent("Human Approval");
 try {
   const response = await fetch(
     `http://127.0.0.1:8000/api/orders/${orderId}/approve`,
@@ -246,15 +246,19 @@ try {
   }
 
   setApprovalMessage(
-    `Order ${data.order.order_number} approved. Invoice ${data.invoice.invoice_number} generated.`
-  );
+  `Order ${data.order.order_number} approved. Invoice ${data.invoice.invoice_number} generated.`
+);
 
-  await loadDashboard();
+setActiveAgent(null);
+
+await loadDashboard();
 } catch (error) {
   console.error(
     "Order approval failed:",
     error
   );
+  
+  setActiveAgent(null);
 
   setApprovalMessage(
     error instanceof Error
