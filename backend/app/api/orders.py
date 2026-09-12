@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import Customer, Inventory, Order, OrderItem, Product
+from app.models import Customer, Inventory, Invoice, Order, OrderItem, Product
 from app.schemas.order import OrderCreate
 
 router = APIRouter(
@@ -163,16 +163,43 @@ def approve_order(
 
     order.status = "approved"
 
+    existing_invoice = db.query(Invoice).filter(
+        Invoice.order_id == order.id
+    ).first()
+
+    if not existing_invoice:
+        invoice = Invoice(
+            invoice_number="TEMP",
+            order_id=order.id,
+            total_amount=order.total_amount,
+            status="generated",
+        )
+
+        db.add(invoice)
+        db.flush()
+
+        invoice.invoice_number = f"INV-{1000 + invoice.id}"
+
     db.commit()
     db.refresh(order)
 
+    invoice = db.query(Invoice).filter(
+        Invoice.order_id == order.id
+    ).first()
+
     return {
         "success": True,
-        "message": "Order approved successfully",
+        "message": "Order approved and invoice generated successfully",
         "order": {
             "id": order.id,
             "order_number": order.order_number,
             "status": order.status,
             "total_amount": float(order.total_amount),
+        },
+        "invoice": {
+            "id": invoice.id,
+            "invoice_number": invoice.invoice_number,
+            "total_amount": float(invoice.total_amount),
+            "status": invoice.status,
         },
     }

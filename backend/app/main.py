@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 from fastapi import FastAPI
 
 from app.api.products import router as products_router
@@ -5,6 +10,8 @@ from app.api.inventory import router as inventory_router
 from app.api.customers import router as customers_router
 from app.api.orders import router as orders_router
 from app.api.invoices import router as invoices_router
+from app.api.ai import router as ai_router
+from app.api.dashboard import router as dashboard_router
 
 app = FastAPI(
     title="KarobarOS API",
@@ -17,6 +24,8 @@ app.include_router(inventory_router)
 app.include_router(customers_router)
 app.include_router(orders_router)
 app.include_router(invoices_router)
+app.include_router(ai_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/")
