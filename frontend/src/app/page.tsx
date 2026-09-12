@@ -600,21 +600,6 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
             )}
           />
                     <StatCard
-            title="Low Stock"
-            value={
-              loading
-                ? "..."
-                : String(
-                    summary?.low_stock_items ||
-                      0
-                  )
-            }
-            description="Items need attention"
-            alert={Boolean(
-              summary?.low_stock_items
-            )}
-          />
-                    <StatCard
             title="Avg. Order Value"
             value={
               loading
@@ -989,13 +974,21 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
               <div>
 
-                <h3 className="font-semibold">
-                  KarobarOS AI Assistant
-                </h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-lg">
+                    ✦
+                  </div>
 
-                <p className="mt-1 text-sm text-slate-400">
-                  Your business operations copilot
-                </p>
+                  <div>
+                    <h3 className="font-semibold">
+                      AI Operations Command Center
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      Ask KarobarOS to manage sales, inventory, orders, and business insights.
+                    </p>
+                  </div>
+                </div>
 
               </div>
 
@@ -1023,7 +1016,7 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
   </div>
 )}
 
-  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+  <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
     {[
       "Customer",
       "Orchestrator",
@@ -1031,28 +1024,52 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
       "Inventory Agent",
       "Order Agent",
       "Human Approval",
-    ].map((step, index, steps) => (
-      <div
-        key={step}
-        className="flex items-center gap-2"
-      >
-        <span className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-medium text-slate-300">
-          {step}
-        </span>
+    ].map((step, index) => {
+      const isActive =
+        activeAgent === step ||
+        (step === "Customer" && activeAgent === "Orchestrator");
 
-        {index < steps.length - 1 && (
-          <span className="text-slate-600">
-            →
-          </span>
-        )}
-      </div>
-    ))}
+      return (
+        <div
+          key={step}
+          className={`flex items-center gap-3 rounded-xl border px-3 py-3 transition-all ${
+            isActive
+              ? "border-emerald-400/40 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
+              : "border-slate-800 bg-slate-900/60"
+          }`}
+        >
+          <div
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+              isActive
+                ? "bg-emerald-500 text-slate-950"
+                : "bg-slate-800 text-slate-500"
+            }`}
+          >
+            {index + 1}
+          </div>
+
+          <div className="min-w-0">
+            <p
+              className={`text-xs font-semibold ${
+                isActive ? "text-emerald-300" : "text-slate-300"
+              }`}
+            >
+              {step}
+            </p>
+
+            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-600">
+              {isActive ? "Active" : "Workflow step"}
+            </p>
+          </div>
+        </div>
+      );
+    })}
   </div>
 </div>
 
           {/* Live Agent Activity */}
 
-          <div className="border-b border-slate-800 bg-slate-950/40 px-6 py-5">
+          <div className="border-b border-slate-800 bg-slate-950/40 px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -1068,7 +1085,7 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
               </span>
             </div>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
               {agentActivities.length === 0 ? (
                 <p className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-500">
                   No agent activity recorded yet.
@@ -1077,9 +1094,9 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
                 agentActivities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3"
+                    className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5"
                   >
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+                    <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
