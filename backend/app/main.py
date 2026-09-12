@@ -14,6 +14,7 @@ from app.api.invoices import router as invoices_router
 from app.api.ai import router as ai_router
 from app.api.dashboard import router as dashboard_router
 from app.api.business_summary import router as business_summary_router
+from app.api.agent_activity import router as agent_activity_router
 
 app = FastAPI(
     title="KarobarOS API",
@@ -43,6 +44,7 @@ app.include_router(invoices_router)
 app.include_router(ai_router)
 app.include_router(dashboard_router)
 app.include_router(business_summary_router)
+app.include_router(agent_activity_router)
 
 
 @app.get("/")

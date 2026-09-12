@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import Customer, Inventory, Invoice, Order, OrderItem, Product
 from app.schemas.order import OrderCreate
+from app.services.agent_activity import log_agent_activity
 
 router = APIRouter(
     prefix="/api/orders",
@@ -138,6 +139,14 @@ def approve_order(
             detail=f"Order cannot be approved. Current status: {order.status}",
         )
 
+    log_agent_activity(
+        db=db,
+        agent_name="Human Approval",
+        action="order_approval",
+        status="started",
+        details=f"Approving {order.order_number}",
+    )
+
     order_items = db.query(OrderItem).filter(
         OrderItem.order_id == order.id
     ).all()
@@ -168,6 +177,14 @@ def approve_order(
     ).first()
 
     if not existing_invoice:
+        log_agent_activity(
+            db=db,
+            agent_name="Invoice Service",
+            action="invoice_generation",
+            status="started",
+            details=f"Generating invoice for {order.order_number}",
+        )
+
         invoice = Invoice(
             invoice_number="TEMP",
             order_id=order.id,
@@ -182,6 +199,22 @@ def approve_order(
 
     db.commit()
     db.refresh(order)
+
+    log_agent_activity(
+        db=db,
+        agent_name="Human Approval",
+        action="order_approval",
+        status="completed",
+        details=f"{order.order_number} approved; inventory updated",
+    )
+
+    log_agent_activity(
+        db=db,
+        agent_name="Invoice Service",
+        action="invoice_generation",
+        status="completed",
+        details=f"Invoice generated for {order.order_number}",
+    )
 
     invoice = db.query(Invoice).filter(
         Invoice.order_id == order.id

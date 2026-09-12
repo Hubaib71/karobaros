@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models import Customer, Inventory, Order, OrderItem, Product
+from app.services.agent_activity import log_agent_activity
 
 
 def create_pending_order(
@@ -10,11 +11,27 @@ def create_pending_order(
     quantity: int,
     delivery_city: str | None = None,
 ):
+    log_agent_activity(
+        db=db,
+        agent_name="Order Agent",
+        action="order_creation",
+        status="started",
+        details=f"Creating order for customer {customer_id}, product {product_id}, quantity {quantity}",
+    )
+
     customer = db.query(Customer).filter(
         Customer.id == customer_id
     ).first()
 
     if not customer:
+        log_agent_activity(
+            db=db,
+            agent_name="Order Agent",
+            action="order_creation",
+            status="failed",
+            details="Customer not found",
+        )
+
         return {
             "success": False,
             "message": "Customer not found",
@@ -25,6 +42,14 @@ def create_pending_order(
     ).first()
 
     if not product:
+        log_agent_activity(
+            db=db,
+            agent_name="Order Agent",
+            action="order_creation",
+            status="failed",
+            details="Product not found",
+        )
+
         return {
             "success": False,
             "message": "Product not found",
@@ -35,12 +60,28 @@ def create_pending_order(
     ).first()
 
     if not inventory:
+        log_agent_activity(
+            db=db,
+            agent_name="Order Agent",
+            action="order_creation",
+            status="failed",
+            details="Inventory record not found",
+        )
+
         return {
             "success": False,
             "message": "Inventory record not found",
         }
 
     if inventory.quantity < quantity:
+        log_agent_activity(
+            db=db,
+            agent_name="Order Agent",
+            action="order_creation",
+            status="failed",
+            details=f"Insufficient stock: {inventory.quantity} available, {quantity} requested",
+        )
+
         return {
             "success": False,
             "message": "Insufficient stock",
@@ -75,6 +116,14 @@ def create_pending_order(
     db.add(order_item)
     db.commit()
     db.refresh(order)
+
+    log_agent_activity(
+        db=db,
+        agent_name="Order Agent",
+        action="order_creation",
+        status="completed",
+        details=f"{order.order_number} created for Rs {total_amount:.0f}; awaiting human approval",
+    )
 
     return {
         "success": True,

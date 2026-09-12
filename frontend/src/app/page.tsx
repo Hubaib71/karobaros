@@ -47,6 +47,15 @@ recommended_quantity: number;
 reason: string;
 };
 
+type AgentActivity = {
+id: number;
+agent_name: string;
+action: string;
+status: string;
+details: string | null;
+created_at: string;
+};
+
 export default function Home() {
 const [summary, setSummary] =
 useState<DashboardSummary | null>(null);
@@ -82,6 +91,9 @@ useState(false);
 
 const [activeAgent, setActiveAgent] = useState<string | null>(null);
 
+const [agentActivities, setAgentActivities] =
+useState<AgentActivity[]>([]);
+
 const [restockRecommendation, setRestockRecommendation] =
 useState<RestockRecommendation | null>(null);
 
@@ -105,6 +117,7 @@ async function loadDashboard() {
       inventoryResponse,
       customerHistoryResponse,
       customersResponse,
+      agentActivityResponse,
     ] = await Promise.all([
       fetch(
         "http://127.0.0.1:8000/api/dashboard/summary"
@@ -125,6 +138,10 @@ async function loadDashboard() {
       fetch(
         "http://127.0.0.1:8000/api/customers/"
       ),
+
+      fetch(
+        "http://127.0.0.1:8000/api/agent-activity/?limit=12"
+      ),
     ]);
 
     const summaryData =
@@ -142,6 +159,9 @@ async function loadDashboard() {
     const customersData =
       await customersResponse.json();
 
+    const agentActivityData =
+      await agentActivityResponse.json();
+
     setSummary(summaryData.summary);
 
     setOrders(
@@ -158,6 +178,10 @@ async function loadDashboard() {
 
     setCustomers(
       customersData.customers || []
+    );
+
+    setAgentActivities(
+      agentActivityData.activities || []
     );
   } catch (error) {
     console.error(
@@ -1025,6 +1049,58 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
     ))}
   </div>
 </div>
+
+          {/* Live Agent Activity */}
+
+          <div className="border-b border-slate-800 bg-slate-950/40 px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Live agent activity
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Real workflow events recorded by KarobarOS.
+                </p>
+              </div>
+
+              <span className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-medium text-slate-400">
+                {agentActivities.length} events
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {agentActivities.length === 0 ? (
+                <p className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-500">
+                  No agent activity recorded yet.
+                </p>
+              ) : (
+                agentActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900 px-4 py-3"
+                  >
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-200">
+                          {activity.agent_name}
+                        </span>
+
+                        <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                          {activity.status}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {activity.details || activity.action}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
           {/* Chat */}
 

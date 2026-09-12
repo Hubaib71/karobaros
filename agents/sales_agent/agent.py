@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models import Inventory, Product
+from app.services.agent_activity import log_agent_activity
 
 
 COLOR_TO_SKU = {
@@ -77,6 +78,14 @@ def process_sales_request(
     size: str | None = None,
     color: str | None = None,
 ):
+    log_agent_activity(
+        db=db,
+        agent_name="Sales Agent",
+        action="product_lookup",
+        status="started",
+        details=f"Looking up {product_name} {color or ''} {size or ''}".strip(),
+    )
+
     product, error = find_product(
         db=db,
         product_name=product_name,
@@ -85,10 +94,25 @@ def process_sales_request(
     )
 
     if error:
+        log_agent_activity(
+            db=db,
+            agent_name="Sales Agent",
+            action="product_lookup",
+            status="failed",
+            details=error,
+        )
         return {
             "success": False,
             "message": error,
         }
+
+    log_agent_activity(
+        db=db,
+        agent_name="Sales Agent",
+        action="stock_check",
+        status="started",
+        details=f"Checking stock for {product.sku}, requested {quantity}",
+    )
 
     stock = check_product_stock(
         db=db,
@@ -97,6 +121,13 @@ def process_sales_request(
     )
 
     if not stock["sufficient"]:
+        log_agent_activity(
+            db=db,
+            agent_name="Sales Agent",
+            action="stock_check",
+            status="failed",
+            details=f"Only {stock['available']} available; requested {quantity}",
+        )
         return {
             "success": False,
             "message": "Insufficient stock",
@@ -109,6 +140,14 @@ def process_sales_request(
         }
 
     total_amount = float(product.price) * quantity
+
+    log_agent_activity(
+        db=db,
+        agent_name="Sales Agent",
+        action="sales_calculation",
+        status="completed",
+        details=f"{quantity} x Rs {float(product.price):.0f} = Rs {total_amount:.0f}",
+    )
 
     return {
         "success": True,
