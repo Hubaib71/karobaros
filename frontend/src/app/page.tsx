@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 
 type DashboardSummary = {
-total_products: number;
-total_customers: number;
-total_orders: number;
-approved_orders: number;
-pending_orders: number;
-total_sales: number;
-low_stock_items: number;
+  total_products: number;
+  total_customers: number;
+  total_orders: number;
+  approved_orders: number;
+  pending_orders: number;
+  total_sales: number;
+  low_stock_items: number;
+  average_order_value: number;
+  approval_rate: number;
 };
 
 type Order = {
@@ -498,7 +500,7 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
         {/* Stats */}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
           <StatCard
             title="Total Sales"
@@ -560,6 +562,47 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
             alert={Boolean(
               summary?.low_stock_items
             )}
+          />
+                    <StatCard
+            title="Low Stock"
+            value={
+              loading
+                ? "..."
+                : String(
+                    summary?.low_stock_items ||
+                      0
+                  )
+            }
+            description="Items need attention"
+            alert={Boolean(
+              summary?.low_stock_items
+            )}
+          />
+                    <StatCard
+            title="Avg. Order Value"
+            value={
+              loading
+                ? "..."
+                : "Rs. " +
+                  (
+                    summary?.average_order_value ||
+                    0
+                  ).toLocaleString()
+            }
+            description="Per approved order"
+          />
+
+          <StatCard
+            title="Approval Rate"
+            value={
+              loading
+                ? "..."
+                : (
+                    summary?.approval_rate ||
+                    0
+                  ).toFixed(1) + "%"
+            }
+            description="Orders approved"
           />
 
         </div>
@@ -960,41 +1003,66 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
           <div className="p-6">
 
-            {/* Example */}
+             {/* Example requests */}
 
-            <div className="rounded-xl bg-slate-900 p-4">
+<div className="rounded-xl bg-slate-900 p-4">
 
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Example request
-              </p>
+  <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+    Example requests
+  </p>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setChatMessage(
-                    "Bhai 2 black T-shirts size L chahiye, Lahore delivery."
-                  )
-                }
-                className="mt-3 w-full rounded-xl bg-slate-800 p-4 text-left text-sm text-slate-300 transition hover:bg-slate-700"
-              >
-                “Bhai 2 black T-shirts size L chahiye, Lahore delivery.”
-              </button>
+  <div className="mt-3 grid gap-3 sm:grid-cols-2">
 
-            </div>
+    <button
+      type="button"
+      onClick={() =>
+        setChatMessage(
+          "Bhai 2 black T-shirts size L chahiye, Lahore delivery."
+        )
+      }
+      className="rounded-xl bg-slate-800 p-4 text-left text-sm text-slate-300 transition hover:bg-slate-700"
+    >
+      “Bhai 2 black T-shirts size L chahiye, Lahore delivery.”
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setChatMessage(
+          "Aaj ka business summary batao"
+        )
+      }
+      className="rounded-xl bg-slate-800 p-4 text-left text-sm text-slate-300 transition hover:bg-slate-700"
+    >
+      “Aaj ka business summary batao”
+    </button>
+
+  </div>
+
+</div>
 
             {/* AI response */}
 
             <div className="mt-4 rounded-xl bg-slate-900 p-4">
 
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                AI response
-              </p>
+  <div className="flex items-center justify-between">
+    <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+      AI response
+    </p>
 
-              <div className="mt-3 rounded-xl bg-slate-800 p-4 text-sm leading-6 text-slate-200">
-                {aiResponse}
-              </div>
+    {restockRecommendation === null &&
+      aiResponse.includes("restocked successfully") && (
+        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+          ✓ Action completed
+        </span>
+      )}
+  </div>
 
-            </div>
+  <div className="mt-3 rounded-xl bg-slate-800 p-4 text-sm leading-6 text-slate-200">
+    {aiResponse}
+  </div>
+
+</div>
 
             {/* Restock Recommendation */}
 

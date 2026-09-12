@@ -39,6 +39,18 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
         for order in approved_order_records
     )
 
+    average_order_value = (
+        total_sales / approved_orders
+        if approved_orders
+        else 0
+    )
+
+    approval_rate = (
+        (approved_orders / total_orders) * 100
+        if total_orders
+        else 0
+    )
+
     low_stock_items = (
         db.query(Inventory)
         .filter(
@@ -57,6 +69,8 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
             "pending_orders": pending_orders,
             "total_sales": total_sales,
             "low_stock_items": low_stock_items,
+            "average_order_value": average_order_value,
+            "approval_rate": approval_rate,
         },
     }
 

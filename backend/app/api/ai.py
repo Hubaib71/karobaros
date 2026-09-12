@@ -1,12 +1,69 @@
 from fastapi import APIRouter
+from sqlalchemy.orm import Session
 
 from agents.orchestrator.graph import orchestrator
+from app.db.session import SessionLocal
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.services.business_summary import get_business_summary
 
 router = APIRouter(
     prefix="/api/ai",
     tags=["AI"],
 )
+
+
+def is_business_summary_request(message: str) -> bool:
+    text = message.lower().strip()
+
+    summary_words = [
+        "summary",
+        "business summary",
+        "daily summary",
+        "today's summary",
+        "today summary",
+        "sales summary",
+        "business report",
+        "report",
+        "aaj ka business",
+        "aaj ka summary",
+        "aaj ki summary",
+        "aaj ka report",
+        "business kaisa",
+        "business kaise",
+    ]
+
+    return any(word in text for word in summary_words)
+
+
+def build_business_summary_response(summary: dict) -> str:
+    top_product = summary.get("top_product")
+
+    response = (
+        "Ji, yeh KarobarOS ka business summary hai:\n\n"
+        f"• Total sales: Rs. {summary['total_sales']:,.0f}\n"
+        f"• Total orders: {summary['total_orders']}\n"
+        f"• Approved orders: {summary['approved_orders']}\n"
+        f"• Pending orders: {summary['pending_orders']}\n"
+        f"• Average order value: Rs. {summary['average_order_value']:,.0f}\n"
+        f"• Customers: {summary['total_customers']}\n"
+        f"• Low-stock products: {summary['low_stock_count']}\n"
+    )
+
+    if top_product:
+        response += (
+            f"\nTop-selling product: {top_product['product']} "
+            f"({top_product['units_sold']} units sold)."
+        )
+
+    low_stock_products = summary.get("low_stock_products", [])
+
+    if low_stock_products:
+        response += (
+            "\n\n⚠️ Low-stock alert: "
+            f"{len(low_stock_products)} product needs attention."
+        )
+
+    return response
 
 
 def build_ai_response(result: dict) -> str:
@@ -112,6 +169,28 @@ def build_ai_response(result: dict) -> str:
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+    if is_business_summary_request(request.message):
+        db: Session = SessionLocal()
+
+        try:
+            summary = get_business_summary(db)
+        finally:
+            db.close()
+
+        return ChatResponse(
+            success=True,
+            message=build_business_summary_response(summary),
+            customer_id=request.customer_id,
+            intent="business_summary",
+            product=None,
+            size=None,
+            color=None,
+            quantity=None,
+            delivery_city=None,
+            next_agent="business_summary",
+            restock_recommendation=None,
+        )
+
     result = orchestrator.invoke(
         {
             "message": request.message,
