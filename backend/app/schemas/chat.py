@@ -3,11 +3,13 @@ from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
     message: str
+    customer_id: int = 1
 
 
 class ChatResponse(BaseModel):
     success: bool
     message: str
+    customer_id: int
     intent: str
     product: str | None = None
     size: str | None = None

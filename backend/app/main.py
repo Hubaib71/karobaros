@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.products import router as products_router
 from app.api.inventory import router as inventory_router
@@ -13,11 +14,26 @@ from app.api.invoices import router as invoices_router
 from app.api.ai import router as ai_router
 from app.api.dashboard import router as dashboard_router
 
+
 app = FastAPI(
     title="KarobarOS API",
     description="AI-powered operating system for small businesses",
     version="0.1.0",
 )
+
+
+# Allow the Next.js frontend to communicate with FastAPI
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 app.include_router(products_router)
 app.include_router(inventory_router)
