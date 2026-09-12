@@ -246,7 +246,7 @@ try {
   }
 
   setApprovalMessage(
-  `Order ${data.order.order_number} approved. Invoice ${data.invoice.invoice_number} generated.`
+  `Order ${data.order.order_number} approved successfully.\n\nInvoice ${data.invoice.invoice_number} generated.\n\nInventory updated and order is ready for fulfillment.`
 );
 
 setActiveAgent(null);
@@ -622,10 +622,15 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
         {/* Approval message */}
 
         {approvalMessage && (
-          <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-800">
-            {approvalMessage}
-          </div>
-        )}
+  <div className="mt-3 rounded-xl bg-emerald-500/10 p-4 text-sm leading-6 text-emerald-300">
+    {approvalMessage.split("\n").map((line, index) => (
+      <p key={index} className={index > 0 ? "mt-2" : ""}>
+        {line}
+      </p>
+    ))}
+  </div>
+)}
+  
 
         {/* Main grid */}
 
