@@ -84,60 +84,90 @@ useState<RestockRecommendation | null>(null);
 const [restockLoading, setRestockLoading] =
 useState(false);
 
+const [customerHistory, setCustomerHistory] =
+useState<any>(null);
+
+const [customers, setCustomers] =
+useState<any[]>([]);
+
+const [selectedCustomerId, setSelectedCustomerId] =
+useState<number>(1);
+
 async function loadDashboard() {
-try {
-const [
-summaryResponse,
-ordersResponse,
-inventoryResponse,
-] = await Promise.all([
-fetch(
-"http://127.0.0.1:8000/api/dashboard/summary"
-),
+  try {
+    const [
+      summaryResponse,
+      ordersResponse,
+      inventoryResponse,
+      customerHistoryResponse,
+      customersResponse,
+    ] = await Promise.all([
+      fetch(
+        "http://127.0.0.1:8000/api/dashboard/summary"
+      ),
 
+      fetch(
+        "http://127.0.0.1:8000/api/dashboard/recent-orders"
+      ),
 
-    fetch(
-      "http://127.0.0.1:8000/api/dashboard/recent-orders"
-    ),
+      fetch(
+        "http://127.0.0.1:8000/api/inventory/"
+      ),
 
-    fetch(
-      "http://127.0.0.1:8000/api/inventory/"
-    ),
-  ]);
+      fetch(
+        `http://127.0.0.1:8000/api/customers/${selectedCustomerId}/history`
+      ),
 
-  const summaryData =
-    await summaryResponse.json();
+      fetch(
+        "http://127.0.0.1:8000/api/customers/"
+      ),
+    ]);
 
-  const ordersData =
-    await ordersResponse.json();
+    const summaryData =
+      await summaryResponse.json();
 
-  const inventoryData =
-    await inventoryResponse.json();
+    const ordersData =
+      await ordersResponse.json();
 
-  setSummary(summaryData.summary);
+    const inventoryData =
+      await inventoryResponse.json();
 
-  setOrders(
-    ordersData.orders || []
-  );
+    const customerHistoryData =
+      await customerHistoryResponse.json();
 
-  setInventory(
-    inventoryData.inventory || []
-  );
-} catch (error) {
-  console.error(
-    "Failed to load dashboard:",
-    error
-  );
-} finally {
-  setLoading(false);
-}
+    const customersData =
+      await customersResponse.json();
 
+    setSummary(summaryData.summary);
 
+    setOrders(
+      ordersData.orders || []
+    );
+
+    setInventory(
+      inventoryData.inventory || []
+    );
+
+    setCustomerHistory(
+      customerHistoryData
+    );
+
+    setCustomers(
+      customersData.customers || []
+    );
+  } catch (error) {
+    console.error(
+      "Failed to load dashboard:",
+      error
+    );
+  } finally {
+    setLoading(false);
+  }
 }
 
 useEffect(() => {
-loadDashboard();
-}, []);
+  loadDashboard();
+}, [selectedCustomerId]);
 
 async function rejectOrder(orderId: number) {
   if (rejectingOrderId !== null) {
@@ -1092,6 +1122,136 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
     </section>
 
   </div>
+
+      <section className="mt-8">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Customer History
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Recent orders and spending for the selected customer.
+              </p>
+            </div>
+
+            <select
+              value={selectedCustomerId}
+              onChange={(event) =>
+                setSelectedCustomerId(
+                  Number(event.target.value)
+                )
+              }
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-slate-400"
+            >
+              {customers.map((customer) => (
+                <option
+                  key={customer.id}
+                  value={customer.id}
+                >
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {customerHistory?.customer && (
+            <div className="mt-5 rounded-xl bg-slate-50 p-4">
+              <p className="font-medium text-slate-900">
+                {customerHistory.customer.name}
+              </p>
+              <p className="text-sm text-slate-500">
+                {customerHistory.customer.city}
+              </p>
+            </div>
+          )}
+
+          {customerHistory?.summary && (
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-sm text-slate-500">Total Orders</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">
+                  {customerHistory.summary.total_orders}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-sm text-slate-500">Approved Orders</p>
+                <p className="mt-1 text-2xl font-semibold text-emerald-600">
+                  {customerHistory.summary.approved_orders}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-sm text-slate-500">Total Spent</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-900">
+                  Rs {customerHistory.summary.total_spent.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {customerHistory?.orders?.length > 0 && (
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500">
+                    <th className="pb-3 font-medium">Order</th>
+                    <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium">Amount</th>
+                    <th className="pb-3 font-medium">City</th>
+                    <th className="pb-3 font-medium">Invoice</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {customerHistory.orders.slice(0, 5).map(
+                    (order: any) => (
+                      <tr
+                        key={order.order_id}
+                        className="border-b border-slate-100 last:border-0"
+                      >
+                        <td className="py-3 font-medium text-slate-900">
+                          {order.order_number}
+                        </td>
+
+                        <td className="py-3">
+                          <span
+                            className={
+                              "rounded-full px-3 py-1 text-xs font-medium " +
+                              (
+                                order.status === "approved"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : order.status === "rejected"
+                                    ? "bg-red-50 text-red-700"
+                                    : "bg-amber-50 text-amber-700"
+                              )
+                            }
+                          >
+                            {order.status.replace("_", " ")}
+                          </span>
+                        </td>
+
+                        <td className="py-3 text-slate-700">
+                          Rs {order.total_amount.toLocaleString()}
+                        </td>
+
+                        <td className="py-3 text-slate-700">
+                          {order.delivery_city}
+                        </td>
+
+                        <td className="py-3 text-slate-700">
+                          {order.invoice_number || "—"}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
 
 </main>
 
