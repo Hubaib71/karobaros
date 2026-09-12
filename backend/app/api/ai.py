@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from agents.orchestrator.graph import orchestrator
 from app.schemas.chat import ChatRequest, ChatResponse
 
+
 router = APIRouter(
     prefix="/api/ai",
     tags=["AI"],
@@ -11,9 +12,12 @@ router = APIRouter(
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
-    result = orchestrator.invoke({
-        "message": request.message,
-    })
+    result = orchestrator.invoke(
+        {
+            "message": request.message,
+            "customer_id": request.customer_id,
+        }
+    )
 
     intent = result.get("intent")
     next_agent = result.get("next_agent")
@@ -21,6 +25,7 @@ def chat(request: ChatRequest):
     return ChatResponse(
         success=True,
         message="Message processed successfully",
+        customer_id=request.customer_id,
         intent=intent.intent,
         product=intent.product,
         size=intent.size,

@@ -15,6 +15,7 @@ from app.db.session import SessionLocal
 
 class AgentState(TypedDict, total=False):
     message: str
+    customer_id: int
     intent: OrderIntent
     next_agent: str
     sales_result: dict
@@ -106,7 +107,7 @@ def order_agent(state: AgentState) -> AgentState:
     try:
         result = create_pending_order(
             db=db,
-            customer_id=1,
+            customer_id=state["customer_id"],
             product_id=sales_result["product_id"],
             quantity=intent.quantity,
             delivery_city=intent.delivery_city,
