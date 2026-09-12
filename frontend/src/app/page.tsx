@@ -80,6 +80,8 @@ useState(
 const [chatLoading, setChatLoading] =
 useState(false);
 
+const [activeAgent, setActiveAgent] = useState<string | null>(null);
+
 const [restockRecommendation, setRestockRecommendation] =
 useState<RestockRecommendation | null>(null);
 
@@ -330,10 +332,8 @@ if (!message || chatLoading) {
 }
 
 setChatLoading(true);
-
-setAiResponse(
-  "KarobarOS is thinking..."
-);
+setActiveAgent("Orchestrator");
+setAiResponse("KarobarOS is thinking...");
 
 try {
   const response = await fetch(
@@ -363,6 +363,14 @@ try {
     );
   }
 
+  setActiveAgent("Sales Agent");
+await new Promise((resolve) => setTimeout(resolve, 300));
+
+setActiveAgent("Inventory Agent");
+await new Promise((resolve) => setTimeout(resolve, 300));
+
+setActiveAgent("Order Agent");
+await new Promise((resolve) => setTimeout(resolve, 300));
   setAiResponse(
     data.message
   );
@@ -971,6 +979,16 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
   <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
     Agent workflow
   </p>
+  {activeAgent && (
+  <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+    <p className="text-xs font-medium uppercase tracking-wider text-emerald-400">
+      Agent activity
+    </p>
+    <p className="mt-1 text-sm font-medium text-emerald-300">
+      {activeAgent} is working...
+    </p>
+  </div>
+)}
 
   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
     {[
