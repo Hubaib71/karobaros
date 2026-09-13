@@ -284,6 +284,42 @@ async function rejectOrder(orderId: number) {
   }
 }
 
+async function downloadInvoice(orderId: number) {
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/api/invoices/order/${orderId}/pdf`
+    );
+
+    if (!response.ok) {
+      const data = await response.json();
+
+      throw new Error(
+        data.detail || "Failed to download invoice"
+      );
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `invoice-${orderId}.pdf`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Invoice download failed:", error);
+
+    setApprovalMessage(
+      error instanceof Error
+        ? error.message
+        : "Failed to download invoice."
+    );
+  }
+}
 async function approveOrder(orderId: number) {
 if (approvingOrderId !== null) {
 return;
@@ -1073,22 +1109,27 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
             </td>
 
             <td className="px-6 py-4">
+  {order.invoice_number ? (
+    <div className="flex items-center gap-2">
+      <span className="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+        {order.invoice_number}
+      </span>
 
-              {order.invoice_number ? (
-
-                <span className="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                  {order.invoice_number}
-                </span>
-
-              ) : (
-
-                <span className="text-xs font-medium text-slate-400">
-                  Not generated
-                </span>
-
-              )}
-
-            </td>
+      {order.status === "approved" && (
+        <button
+          onClick={() => downloadInvoice(order.id)}
+          className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Download PDF
+        </button>
+      )}
+    </div>
+  ) : (
+    <span className="text-xs font-medium text-slate-400">
+      Not generated
+    </span>
+  )}
+</td>
 
             <td className="px-6 py-4">
 

@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import Invoice, Order
+from app.models import Customer, Invoice, Order
+from app.services.invoice_pdf import generate_invoice_pdf
+
 
 router = APIRouter(
     prefix="/api/invoices",
@@ -36,7 +39,9 @@ def generate_invoice(
     order_id: int,
     db: Session = Depends(get_db),
 ):
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = db.query(Order).filter(
+        Order.id == order_id
+    ).first()
 
     if not order:
         raise HTTPException(
@@ -93,3 +98,119 @@ def generate_invoice(
             "status": invoice.status,
         },
     }
+
+
+@router.get("/order/{order_id}/pdf")
+def download_order_invoice_pdf(
+    order_id: int,
+    db: Session = Depends(get_db),
+):
+    invoice = db.query(Invoice).filter(
+        Invoice.order_id == order_id
+    ).first()
+
+    if not invoice:
+        raise HTTPException(
+            status_code=404,
+            detail="Invoice not found for this order",
+        )
+
+    order = db.query(Order).filter(
+        Order.id == order_id
+    ).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found",
+        )
+
+    customer = db.query(Customer).filter(
+        Customer.id == order.customer_id
+    ).first()
+
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found",
+        )
+
+    pdf_buffer = generate_invoice_pdf(
+        invoice_number=invoice.invoice_number,
+        order_number=order.order_number,
+        customer_name=customer.name,
+        customer_phone=customer.phone,
+        customer_city=customer.city,
+        delivery_city=order.delivery_city,
+        total_amount=float(invoice.total_amount),
+        status=invoice.status,
+        created_at=invoice.created_at,
+    )
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{invoice.invoice_number}.pdf"'
+            )
+        },
+    )
+
+
+@router.get("/{invoice_id}/pdf")
+def download_invoice_pdf(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+):
+    invoice = db.query(Invoice).filter(
+        Invoice.id == invoice_id
+    ).first()
+
+    if not invoice:
+        raise HTTPException(
+            status_code=404,
+            detail="Invoice not found",
+        )
+
+    order = db.query(Order).filter(
+        Order.id == invoice.order_id
+    ).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found",
+        )
+
+    customer = db.query(Customer).filter(
+        Customer.id == order.customer_id
+    ).first()
+
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found",
+        )
+
+    pdf_buffer = generate_invoice_pdf(
+        invoice_number=invoice.invoice_number,
+        order_number=order.order_number,
+        customer_name=customer.name,
+        customer_phone=customer.phone,
+        customer_city=customer.city,
+        delivery_city=order.delivery_city,
+        total_amount=float(invoice.total_amount),
+        status=invoice.status,
+        created_at=invoice.created_at,
+    )
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{invoice.invoice_number}.pdf"'
+            )
+        },
+    )
