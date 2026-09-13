@@ -98,8 +98,10 @@ def get_restock_recommendation(
             detail="Inventory record not found",
         )
 
+    target_stock = inventory.low_stock_threshold * 2
+
     recommended_quantity = max(
-        inventory.low_stock_threshold - inventory.quantity,
+        target_stock - inventory.quantity,
         0,
     )
 
@@ -111,12 +113,13 @@ def get_restock_recommendation(
             "sku": product.sku,
             "current_quantity": inventory.quantity,
             "low_stock_threshold": inventory.low_stock_threshold,
+            "target_stock": target_stock,
             "recommended_quantity": recommended_quantity,
             "reason": (
-                f"Stock is {recommended_quantity} units below "
-                f"the low-stock threshold."
+                f"AI recommends restocking {recommended_quantity} units "
+                f"to reach the target stock level of {target_stock}."
                 if recommended_quantity > 0
-                else "Stock level is currently sufficient."
+                else "Stock is already at or above the target level."
             ),
         },
     }
