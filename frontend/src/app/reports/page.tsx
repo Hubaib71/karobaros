@@ -32,7 +32,7 @@ export default function ReportsPage() {
   async function loadReports() {
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/dashboard/sales-intelligence"
+        "https://karobaros.fastapicloud.dev/api/dashboard/sales-intelligence"
       );
 
       const result = await response.json();

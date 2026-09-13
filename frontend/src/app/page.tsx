@@ -139,35 +139,35 @@ async function loadDashboard() {
       topProductsResponse,
     ] = await Promise.all([
       fetch(
-        "http://127.0.0.1:8000/api/dashboard/summary"
+        "https://karobaros.fastapicloud.dev/api/dashboard/summary"
       ),
 
       fetch(
-        "http://127.0.0.1:8000/api/dashboard/recent-orders"
+        "https://karobaros.fastapicloud.dev/api/dashboard/recent-orders"
       ),
 
       fetch(
-        "http://127.0.0.1:8000/api/inventory/"
+        "https://karobaros.fastapicloud.dev/api/inventory/"
       ),
 
       fetch(
-        `http://127.0.0.1:8000/api/customers/${selectedCustomerId}/history`
+        `https://karobaros.fastapicloud.dev/api/customers/${selectedCustomerId}/history`
       ),
 
       fetch(
-        "http://127.0.0.1:8000/api/customers/"
+        "https://karobaros.fastapicloud.dev/api/customers/"
       ),
 
       fetch(
-        "http://127.0.0.1:8000/api/agent-activity/?limit=12"
+        "https://karobaros.fastapicloud.dev/api/agent-activity/?limit=12"
       ),
 
       fetch(
-        "http://127.0.0.1:8000/api/dashboard/sales-overview"
+        "https://karobaros.fastapicloud.dev/api/dashboard/sales-overview"
       ),
 
       fetch(
-        "http://127.0.0.1:8000/api/dashboard/top-products"
+        "https://karobaros.fastapicloud.dev/api/dashboard/top-products"
       ),
     ]);
 
@@ -249,7 +249,7 @@ async function rejectOrder(orderId: number) {
 
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/api/orders/${orderId}/reject`,
+      `https://karobaros.fastapicloud.dev/api/orders/${orderId}/reject`,
       {
         method: "POST",
       }
@@ -287,7 +287,7 @@ async function rejectOrder(orderId: number) {
 async function downloadInvoice(orderId: number) {
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/api/invoices/order/${orderId}/pdf`
+      `https://karobaros.fastapicloud.dev/api/invoices/order/${orderId}/pdf`
     );
 
     if (!response.ok) {
@@ -331,7 +331,7 @@ setApprovalMessage("");
 setActiveAgent("Human Approval");
 try {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/orders/${orderId}/approve`,
+    `https://karobaros.fastapicloud.dev/api/orders/${orderId}/approve`,
     {
       method: "POST",
     }
@@ -386,7 +386,7 @@ setRestockLoading(true);
 
 try {
   const response = await fetch(
-    `http://127.0.0.1:8000/api/inventory/${recommendation.product_id}/restock?quantity=${recommendation.recommended_quantity}`,
+    `https://karobaros.fastapicloud.dev/api/inventory/${recommendation.product_id}/restock?quantity=${recommendation.recommended_quantity}`,
     {
       method: "POST",
     }
@@ -442,7 +442,7 @@ setAiResponse("KarobarOS is thinking...");
 
 try {
   const response = await fetch(
-    "http://127.0.0.1:8000/api/ai/chat",
+    "https://karobaros.fastapicloud.dev/api/ai/chat",
     {
       method: "POST",
 

@@ -41,7 +41,7 @@ export default function CustomersPage() {
   async function loadCustomers() {
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/customers/"
+        "https://karobaros.fastapicloud.dev/api/customers/"
       );
 
       const data = await response.json();
@@ -65,7 +65,7 @@ export default function CustomersPage() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/customers/${customerId}/intelligence`
+        `https://karobaros.fastapicloud.dev/api/customers/${customerId}/intelligence`
       );
 
       const data = await response.json();

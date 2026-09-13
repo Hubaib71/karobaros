@@ -16,7 +16,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/dashboard/recent-orders")
+    fetch("https://karobaros.fastapicloud.dev/api/dashboard/recent-orders")
       .then((res) => res.json())
       .then((data) => {
         setOrders(Array.isArray(data) ? data : data.orders || []);

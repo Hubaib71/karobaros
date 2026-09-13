@@ -18,7 +18,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/inventory/")
+    fetch("https://karobaros.fastapicloud.dev/api/inventory/")
       .then((res) => res.json())
       .then((data) => {
         setItems(Array.isArray(data) ? data : data.items || []);
