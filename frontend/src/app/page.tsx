@@ -530,23 +530,6 @@ const featuredOrder = orders.find((order) => order.invoice_number) || orders[0];
 return (
   <main className="min-h-screen bg-[#f5f7fa] text-slate-900">
     <div className="flex min-h-screen">
-      <aside className="hidden w-[220px] shrink-0 flex-col bg-[#0b1d2b] text-white md:flex">
-        <div className="px-4 pt-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/[0.04] p-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500 text-lg font-black">K</div>
-            <div><h1 className="text-[17px] font-bold">KarobarOS</h1><p className="text-[9px] text-slate-400">Your Business. AI Powered.</p></div>
-          </div>
-        </div>
-        <nav className="flex-1 px-3 py-6">
-          <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Workspace</p>
-          {[["⌂","Dashboard",true],["◫","Orders",false],["▣","Inventory",false],["♙","Customers",false],["▤","Invoices",false],["◇","Suppliers",false],["◒","Reports",false]].map(([icon,label,active]) => <div key={String(label)} className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold ${active ? "bg-emerald-500 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">{icon}</span>{label}</div>)}
-        </nav>
-        <div className="space-y-1 px-3 pb-4">
-          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-slate-400"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">⚙</span>Settings</div>
-          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-slate-400"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">↪</span>Logout</div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3"><div className="flex justify-between"><b className="text-[11px]">StyleHub PK</b><span className="h-2 w-2 rounded-full bg-emerald-400" /></div><p className="mt-1 text-[9px] text-slate-500">Clothing business</p></div>
-        </div>
-      </aside>
 
       <section className="min-w-0 flex-1">
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden"><div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 font-bold text-white">K</span><b className="text-sm">KarobarOS</b></div><button className="rounded-lg border border-slate-200 px-3 py-2">☰</button></div>
@@ -587,7 +570,207 @@ return (
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h3 className="text-sm font-bold">Low Stock Alerts</h3><p className="mt-1 text-[9px] text-slate-400">Inventory requiring attention</p></div><span className="rounded-full bg-red-50 px-2 py-1 text-[8px] font-bold text-red-600">{lowStockItems.length} alerts</span></div>{lowStockItems.map(item=><div key={item.product_id} className="border-b border-slate-100 p-4"><div className="flex justify-between"><div><p className="text-[9px] font-bold">{item.name}</p><p className="text-[7px] text-slate-400">{item.sku}</p></div><span className="rounded-full bg-red-50 px-1.5 py-1 text-[7px] font-bold text-red-600">CRITICAL</span></div><div className="mt-3 flex justify-between"><span><small className="block text-[7px] text-slate-400">Available stock</small><b className="text-lg">{item.quantity}</b></span><span className="text-right"><small className="block text-[7px] text-slate-400">Threshold</small><b className="text-[9px]">{item.low_stock_threshold}</b></span></div><div className="mt-2 h-1.5 rounded-full bg-slate-100"><div className="h-full rounded-full bg-red-500" style={{width:`${Math.min((item.quantity/Math.max(item.low_stock_threshold,1))*100,100)}%`}}/></div></div>)}{!lowStockItems.length&&<p className="p-8 text-center text-xs text-slate-400">Inventory looks healthy.</p>}</section>
           </div>
 
-          <section className="rounded-2xl bg-[#0c1b2a] p-5 text-white shadow-sm"><div className="flex items-center justify-between"><div><h3 className="text-sm font-bold">✦ AI Operations Command Center</h3><p className="mt-1 text-[9px] text-slate-400">Real workflow events recorded by KarobarOS.</p></div><span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[8px] font-bold text-emerald-400">{agentActivities.length} events</span></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{["Customer","Orchestrator","Sales Agent","Inventory Agent","Order Agent","Human Approval"].map((step,i)=><div key={step} className={`rounded-xl border p-2.5 ${activeAgent===step?"border-emerald-400/30 bg-emerald-500/10":"border-white/10 bg-white/[0.03]"}`}><span className="mr-2 text-[8px] text-emerald-400">{i+1}</span><span className="text-[8px] font-semibold text-slate-300">{step}</span></div>)}</div><div className="max-h-28 space-y-1.5 overflow-y-auto">{agentActivities.slice(0,6).map(a=><div key={a.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2"><p className="text-[8px] font-semibold text-slate-300">● {a.agent_name} <span className="text-slate-500">{a.status}</span></p><p className="mt-1 truncate text-[7px] text-slate-500">{a.details||a.action}</p></div>)}</div></div></section>
+          {restockRecommendation && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-sm">📦</span>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Restock Recommendation</h3>
+                      <p className="text-[9px] text-slate-500">AI Inventory Agent recommends replenishing this product.</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                    <div className="rounded-lg bg-white p-2.5 ring-1 ring-amber-100">
+                      <p className="text-[7px] font-semibold uppercase text-slate-400">Product</p>
+                      <p className="mt-1 text-[9px] font-bold text-slate-800">{restockRecommendation.product}</p>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-2.5 ring-1 ring-amber-100">
+                      <p className="text-[7px] font-semibold uppercase text-slate-400">Current Stock</p>
+                      <p className="mt-1 text-[9px] font-bold text-red-600">{restockRecommendation.current_quantity}</p>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-2.5 ring-1 ring-amber-100">
+                      <p className="text-[7px] font-semibold uppercase text-slate-400">Target Stock</p>
+                      <p className="mt-1 text-[9px] font-bold text-blue-600">
+                        {restockRecommendation.current_quantity + restockRecommendation.recommended_quantity}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-2.5 ring-1 ring-amber-100">
+                      <p className="text-[7px] font-semibold uppercase text-slate-400">Shortage</p>
+                      <p className="mt-1 text-[9px] font-bold text-amber-600">{restockRecommendation.shortage}</p>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-2.5 ring-1 ring-amber-100">
+                      <p className="text-[7px] font-semibold uppercase text-slate-400">Recommended</p>
+                      <p className="mt-1 text-[9px] font-bold text-emerald-600">+{restockRecommendation.recommended_quantity}</p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-[8px] font-semibold text-amber-700">
+                    Reason: {restockRecommendation.reason}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRestockRecommendation(null)}
+                    disabled={restockLoading}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[8px] font-bold text-slate-600 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={approveRestock}
+                    disabled={restockLoading}
+                    className="rounded-lg bg-emerald-500 px-3 py-2 text-[8px] font-bold text-white shadow-sm disabled:opacity-50"
+                  >
+                    {restockLoading ? "Approving..." : "✓ Approve Restock"}
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-2xl bg-[#0c1b2a] p-5 text-white shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-bold">✦ AI Operations Command Center</h3>
+                <p className="mt-1 text-[9px] text-slate-400">
+                  Watch KarobarOS coordinate multiple agents in real time.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>
+                <span className="text-[8px] font-bold text-emerald-400">
+                  {agentActivities.length} live events
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 overflow-x-auto pb-2">
+              <div className="flex min-w-[760px] items-center gap-2">
+                {[
+                  "Customer",
+                  "Orchestrator",
+                  "Sales Agent",
+                  "Inventory Agent",
+                  "Order Agent",
+                  "Human Approval",
+                  "Invoice Agent",
+                  "Inventory Updated",
+                ].map((step, i) => (
+                  <div key={step} className="flex items-center gap-2">
+                    <div
+                      className={`min-w-[82px] rounded-xl border px-2.5 py-3 text-center transition-all ${
+                        activeAgent === step
+                          ? "border-emerald-400/50 bg-emerald-500/15 shadow-lg shadow-emerald-500/10"
+                          : "border-white/10 bg-white/[0.03]"
+                      }`}
+                    >
+                      <div
+                        className={`mx-auto flex h-6 w-6 items-center justify-center rounded-full text-[8px] font-bold ${
+                          activeAgent === step
+                            ? "bg-emerald-400 text-slate-950"
+                            : "bg-white/10 text-emerald-400"
+                        }`}
+                      >
+                        {i + 1}
+                      </div>
+
+                      <p className="mt-2 text-[8px] font-semibold text-slate-300">
+                        {step}
+                      </p>
+
+                      {activeAgent === step && (
+                        <p className="mt-1 text-[7px] font-bold text-emerald-400">
+                          ACTIVE
+                        </p>
+                      )}
+                    </div>
+
+                    {i < 7 && (
+                      <span className="text-sm font-bold text-slate-600">
+                        →
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-slate-500">
+                  Current Agent
+                </p>
+
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-lg">
+                    ✦
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-white">
+                      {activeAgent || "System Ready"}
+                    </p>
+                    <p className="mt-1 text-[8px] text-slate-500">
+                      {activeAgent
+                        ? "Agent is processing the current workflow."
+                        : "Waiting for the next business operation."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[8px] font-bold uppercase tracking-wider text-slate-500">
+                    Recent Agent Events
+                  </p>
+                  <span className="text-[7px] text-slate-600">
+                    LIVE
+                  </span>
+                </div>
+
+                <div className="mt-2 max-h-24 space-y-1.5 overflow-y-auto">
+                  {agentActivities.length > 0 ? (
+                    agentActivities.slice(0, 6).map((a) => (
+                      <div
+                        key={a.id}
+                        className="rounded-lg border border-white/10 bg-white/[0.03] p-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[8px] font-semibold text-slate-300">
+                            ● {a.agent_name}
+                          </p>
+                          <span className="text-[7px] font-semibold text-emerald-400">
+                            {a.status}
+                          </span>
+                        </div>
+
+                        <p className="mt-1 truncate text-[7px] text-slate-500">
+                          {a.details || a.action}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="py-4 text-center text-[8px] text-slate-600">
+                      No agent events yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
 
           <div className="grid gap-4 xl:grid-cols-[.9fr_1.5fr]"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="text-sm font-bold">Daily Business Report</h3><p className="mt-1 text-[9px] text-slate-400">Live summary from KarobarOS</p><div className="mt-4 grid grid-cols-2 gap-2"><MiniMetric label="Revenue" value={`Rs. ${summary?.total_sales?.toLocaleString()||"0"}`}/><MiniMetric label="Orders" value={String(summary?.total_orders||0)}/><MiniMetric label="Best Selling" value={topProducts[0]?.name||"—"}/><MiniMetric label="Low Stock" value={`${lowStockItems.length} items`}/></div><div className="mt-3 rounded-xl bg-amber-50 p-3 text-[8px] font-semibold text-amber-700">{lowStockItems[0]?`Recommendation: restock ${lowStockItems[0].name}.`:"Inventory is currently healthy."}</div></section><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h3 className="text-sm font-bold">Customer History</h3><p className="mt-1 text-[9px] text-slate-400">Recent orders and spending for the selected customer</p></div><select value={selectedCustomerId} onChange={e=>setSelectedCustomerId(Number(e.target.value))} className="rounded-lg border border-slate-200 px-2.5 py-2 text-[9px] font-semibold">{customers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>{customerHistory?.summary&&<div className="mt-3 grid grid-cols-3 gap-2"><MiniMetric label="Total Orders" value={String(customerHistory.summary.total_orders)}/><MiniMetric label="Approved" value={String(customerHistory.summary.approved_orders)}/><MiniMetric label="Total Spent" value={`Rs ${customerHistory.summary.total_spent.toLocaleString()}`}/></div>}{customerHistory?.orders?.length>0&&<div className="mt-3 overflow-x-auto"><table className="w-full min-w-[560px] text-left"><thead><tr className="border-b border-slate-100">{["Order","Status","Amount","City","Invoice"].map(h=><th key={h} className="pb-2 text-[7px] font-bold uppercase text-slate-400">{h}</th>)}</tr></thead><tbody>{customerHistory.orders.slice(0,5).map((o:any)=><tr key={o.order_id} className="border-b border-slate-100"><td className="py-2 text-[8px] font-bold">{o.order_number}</td><td className="py-2"><StatusBadge status={o.status}/></td><td className="py-2 text-[8px]">Rs {o.total_amount.toLocaleString()}</td><td className="py-2 text-[8px]">{o.delivery_city}</td><td className="py-2 text-[8px]">{o.invoice_number||"—"}</td></tr>)}</tbody></table></div>}</section></div>
         </div>
