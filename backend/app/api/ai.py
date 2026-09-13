@@ -4,13 +4,307 @@ from sqlalchemy.orm import Session
 from agents.orchestrator.graph import orchestrator
 from app.db.session import SessionLocal
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.business_summary import get_business_summary
+from app.services.business_summary import get_business_summary, get_today_sales
+from app.models import Customer, Order
 
 router = APIRouter(
     prefix="/api/ai",
     tags=["AI"],
 )
 
+
+def is_today_sales_request(message: str) -> bool:
+    text = message.lower().strip()
+
+    sales_words = [
+        "today sales",
+        "today's sales",
+        "today sale",
+        "aaj ki sales",
+        "aaj ki sale",
+        "aaj sales",
+        "aaj sale",
+        "aaj kitni sale",
+        "aaj kitni sales",
+        "today revenue",
+        "aaj ka revenue",
+        "how much did we sell today",
+        "how much did we sell",
+        "todays sales",
+        "what are today's sales",
+        "what are todays sales",
+        "show today's sales",
+        "show todays sales",
+        "show today's revenue",
+        "show todays revenue",
+    ]
+
+    return any(word in text for word in sales_words)
+
+
+def build_today_sales_response(sales: dict, message: str) -> str:
+    text = message.lower().strip()
+
+    english_words = [
+        "how much",
+        "today",
+        "sales",
+        "sell",
+        "revenue",
+        "what are",
+        "show",
+    ]
+
+    is_english = any(word in text for word in english_words)
+
+    if is_english:
+        return (
+            f"Today's total sales are Rs. {sales['total_sales']:,.0f}. "
+            f"{sales['approved_orders']} approved order(s) were completed today."
+        )
+
+    return (
+        f"Ji, aaj ki total sales Rs. {sales['total_sales']:,.0f} hain. "
+        f"Aaj {sales['approved_orders']} approved "
+        f"order(s) complete hue hain."
+    )
+
+
+def is_low_stock_request(message: str) -> bool:
+    text = message.lower().strip()
+
+    stock_words = [
+        "low stock",
+        "low-stock",
+        "lowstock",
+        "restock",
+        "stock kam",
+        "stock khatam",
+        "stock kitna kam",
+        "kam stock",
+        "inventory low",
+        "which products need restocking",
+        "kaun se products low stock",
+        "kon se products low stock",
+        "low stock batao",
+        "which products are low in stock",
+        "which products are low stock",
+        "which products need restocking",
+        "what products are low in stock",
+        "what products are low stock",
+        "show low stock products",
+        "show me low stock",
+        "show me low stock products",
+        "which items need restocking",
+        "what needs restocking",
+    ]
+
+    return any(word in text for word in stock_words)
+
+
+def build_low_stock_response(db: Session, message: str) -> str:
+    from app.models import Inventory, Product
+
+    text = message.lower().strip()
+
+    english_words = [
+        "which",
+        "what",
+        "show",
+        "products",
+        "items",
+        "need",
+        "restocking",
+        "low in stock",
+        "low stock",
+    ]
+
+    is_english = any(word in text for word in english_words)
+
+    low_stock_items = (
+        db.query(Inventory, Product)
+        .join(Product, Product.id == Inventory.product_id)
+        .filter(Inventory.quantity <= Inventory.low_stock_threshold)
+        .all()
+    )
+
+    if not low_stock_items:
+        if is_english:
+            return "There are currently no low-stock products."
+        return "Ji, abhi koi product low stock nahi hai."
+
+    if is_english:
+        lines = [
+            f"⚠️ {len(low_stock_items)} product(s) are currently low in stock:"
+        ]
+
+        for inventory, product in low_stock_items:
+            shortage = max(
+                inventory.low_stock_threshold - inventory.quantity,
+                0,
+            )
+            lines.append(
+                f"• {product.name} ({product.sku}): "
+                f"{inventory.quantity} units available, "
+                f"recommended restock: {shortage} units."
+            )
+
+        return "\n".join(lines)
+
+    lines = [f"⚠️ {len(low_stock_items)} product(s) low stock hain:"]
+
+    for inventory, product in low_stock_items:
+        shortage = max(
+            inventory.low_stock_threshold - inventory.quantity,
+            0,
+        )
+        lines.append(
+            f"• {product.name} ({product.sku}): "
+            f"{inventory.quantity} units available, "
+            f"recommended restock {shortage} units."
+        )
+
+    return "\n".join(lines)
+
+def find_customer_from_message(db: Session, message: str):
+    customers = db.query(Customer).all()
+    text = message.lower()
+
+    for customer in customers:
+        if customer.name.lower() in text:
+            return customer
+
+    return None
+
+
+def is_customer_request(message: str) -> bool:
+    text = message.lower().strip()
+
+    customer_words = [
+        "customer history",
+        "customer ka history",
+        "customer ki history",
+        "order history",
+        "orders of",
+        "orders for",
+        "spent",
+        "spend",
+        "kitna kharcha",
+        "kitna spend",
+        "customer ne kitna",
+        "customer ne kya order",
+        "customer ke orders",
+        "customer ki orders",
+        "ke orders batao",
+        "ke orders",
+        "orders batao",
+        "orders dikhao",
+    ]
+
+    return any(word in text for word in customer_words)
+
+
+def build_customer_response(db: Session, message: str) -> str:
+    customer = find_customer_from_message(db, message)
+
+    if not customer:
+        text = message.lower().strip()
+
+        if any(word in text for word in [
+            "how much",
+            "spent",
+            "spend",
+            "orders",
+            "order history",
+            "customer history",
+            "show",
+        ]):
+            return (
+                "I couldn't identify the customer name in your message. "
+                "Please provide the customer's name."
+            )
+
+        return (
+            "Ji, customer ka naam message mein clear nahi mila. "
+            "Please customer ka naam bata dein."
+        )
+
+    orders = (
+        db.query(Order)
+        .filter(Order.customer_id == customer.id)
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+
+    approved_orders = [
+        order for order in orders
+        if order.status == "approved"
+    ]
+
+    total_spent = sum(
+        float(order.total_amount)
+        for order in approved_orders
+    )
+
+    text = message.lower().strip()
+
+    english_phrases = [
+        "how much has",
+        "how much did",
+        "how much does",
+        "how many orders",
+        "show me",
+        "show ",
+        "what is",
+        "what are",
+        "customer history",
+        "order history",
+        "orders of",
+        "orders for",
+    ]
+
+    is_english = any(phrase in text for phrase in english_phrases)
+
+    if is_english:
+        response = (
+            f"{customer.name}'s customer history:\n\n"
+            f"• City: {customer.city or 'N/A'}\n"
+            f"• Total orders: {len(orders)}\n"
+            f"• Approved orders: {len(approved_orders)}\n"
+            f"• Total spent: Rs. {total_spent:,.0f}\n"
+        )
+
+        if orders:
+            response += "\nRecent orders:\n"
+
+            for order in orders[:5]:
+                response += (
+                    f"• {order.order_number} — "
+                    f"{order.status} — "
+                    f"Rs. {float(order.total_amount):,.0f}\n"
+                )
+
+        return response
+
+    response = (
+        f"Ji, {customer.name} ki customer history:\n\n"
+        f"• City: {customer.city or 'N/A'}\n"
+        f"• Total orders: {len(orders)}\n"
+        f"• Approved orders: {len(approved_orders)}\n"
+        f"• Total spent: Rs. {total_spent:,.0f}\n"
+    )
+
+    if orders:
+        response += "\nRecent orders:\n"
+
+        for order in orders[:5]:
+            response += (
+                f"• {order.order_number} — "
+                f"{order.status} — "
+                f"Rs. {float(order.total_amount):,.0f}\n"
+            )
+
+    return response
 
 def is_business_summary_request(message: str) -> bool:
     text = message.lower().strip()
@@ -66,7 +360,30 @@ def build_business_summary_response(summary: dict) -> str:
     return response
 
 
-def build_ai_response(result: dict) -> str:
+def is_english_message(message: str) -> bool:
+    text = message.lower().strip()
+
+    roman_urdu_markers = [
+        "chahiye", "ke liye", "hain", "hai", "batao", "bata dein",
+        "kitna", "kitni", "aaj", "kaun", "kon", "mujhe", "ne",
+        "kiya", "karna", "karo", "dein", "chahta", "chahti",
+        "milega", "mil sakta", "delivery ke",
+    ]
+
+    english_phrases = [
+        "i want", "i need", "can i get", "please give", "i'd like",
+        "i would like", "deliver to", "delivered to", "how much",
+        "which", "what are", "show me", "buy ", "purchase",
+    ]
+
+    if any(marker in text for marker in roman_urdu_markers):
+        return False
+
+    return any(phrase in text for phrase in english_phrases)
+
+
+def build_ai_response(result: dict, message: str) -> str:
+    is_english = is_english_message(message)
     intent = result.get("intent")
     sales_result = result.get("sales_result", {})
     inventory_result = result.get("inventory_result", {})
@@ -93,6 +410,13 @@ def build_ai_response(result: dict) -> str:
                 "product",
                 intent.product,
             )
+
+            if is_english:
+                return (
+                    f"Sorry, only {available} units of {product} are available. "
+                    f"You requested {requested} units, so there is a shortage of "
+                    f"{shortage} units. Recommended restock: {shortage} units."
+                )
 
             return (
                 f"Sorry, {product} ke sirf {available} units available hain. "
@@ -139,6 +463,13 @@ def build_ai_response(result: dict) -> str:
             or "customer location"
         )
 
+        if is_english:
+            return (
+                f"Yes, {quantity} × {product} are available. "
+                f"The total is Rs. {total:,.0f}. "
+                f"Order {order_number} is ready for approval for delivery to {city}."
+            )
+
         return (
             f"Ji, {quantity} × {product} available hain. "
             f"Total Rs. {total:,.0f} hai. "
@@ -159,6 +490,12 @@ def build_ai_response(result: dict) -> str:
             0,
         )
 
+        if is_english:
+            return (
+                f"Yes, {quantity} × {product} are available. "
+                f"The total is Rs. {total:,.0f}."
+            )
+
         return (
             f"Ji, {quantity} × {product} available hain. "
             f"Total Rs. {total:,.0f} hai."
@@ -169,6 +506,72 @@ def build_ai_response(result: dict) -> str:
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+    if is_customer_request(request.message):
+        db: Session = SessionLocal()
+
+        try:
+            response = build_customer_response(db, request.message)
+        finally:
+            db.close()
+
+        return ChatResponse(
+            success=True,
+            message=response,
+            customer_id=request.customer_id,
+            intent="customer_intelligence",
+            product=None,
+            size=None,
+            color=None,
+            quantity=None,
+            delivery_city=None,
+            next_agent="customer_agent",
+            restock_recommendation=None,
+        )
+
+    if is_low_stock_request(request.message):
+        db: Session = SessionLocal()
+
+        try:
+            response = build_low_stock_response(db, request.message)
+        finally:
+            db.close()
+
+        return ChatResponse(
+            success=True,
+            message=response,
+            customer_id=request.customer_id,
+            intent="low_stock",
+            product=None,
+            size=None,
+            color=None,
+            quantity=None,
+            delivery_city=None,
+            next_agent="inventory_agent",
+            restock_recommendation=None,
+        )
+
+    if is_today_sales_request(request.message):
+        db: Session = SessionLocal()
+
+        try:
+            sales = get_today_sales(db)
+        finally:
+            db.close()
+
+        return ChatResponse(
+            success=True,
+            message=build_today_sales_response(sales, request.message),
+            customer_id=request.customer_id,
+            intent="today_sales",
+            product=None,
+            size=None,
+            color=None,
+            quantity=None,
+            delivery_city=None,
+            next_agent="business_intelligence",
+            restock_recommendation=None,
+        )
+
     if is_business_summary_request(request.message):
         db: Session = SessionLocal()
 
@@ -201,7 +604,7 @@ def chat(request: ChatRequest):
     intent = result.get("intent")
     next_agent = result.get("next_agent")
 
-    ai_message = build_ai_response(result)
+    ai_message = build_ai_response(result, request.message)
 
     restock_recommendation = None
 

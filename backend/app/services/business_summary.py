@@ -1,6 +1,41 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 
 from app.models import Customer, Inventory, Order, OrderItem, Product
+
+
+def get_today_sales(db: Session):
+    now = datetime.utcnow()
+
+    start_of_day = datetime(
+        now.year,
+        now.month,
+        now.day,
+    )
+
+    start_of_next_day = start_of_day + timedelta(days=1)
+
+    approved_orders = (
+        db.query(Order)
+        .filter(
+            Order.status == "approved",
+            Order.created_at >= start_of_day,
+            Order.created_at < start_of_next_day,
+        )
+        .all()
+    )
+
+    total_sales = sum(
+        float(order.total_amount)
+        for order in approved_orders
+    )
+
+    return {
+        "date": start_of_day.strftime("%Y-%m-%d"),
+        "total_sales": total_sales,
+        "approved_orders": len(approved_orders),
+    }
 
 
 def get_business_summary(db: Session):

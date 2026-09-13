@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models import Customer, Inventory, Invoice, Order
+from app.models import Customer, Inventory, Invoice, Order, OrderItem, Product
 
 router = APIRouter(
     prefix="/api/dashboard",
@@ -157,4 +157,77 @@ def get_dashboard_low_stock(db: Session = Depends(get_db)):
         "success": True,
         "count": len(result),
         "low_stock": result,
+    }
+
+@router.get("/sales-overview")
+def get_sales_overview(db: Session = Depends(get_db)):
+    from datetime import datetime, timedelta
+
+    today = datetime.utcnow().date()
+    start_date = today - timedelta(days=6)
+
+    approved_orders = (
+        db.query(Order)
+        .filter(Order.status == "approved")
+        .all()
+    )
+
+    daily_sales = {}
+
+    for order in approved_orders:
+        order_date = order.created_at.date()
+
+        if start_date <= order_date <= today:
+            daily_sales[order_date] = (
+                daily_sales.get(order_date, 0)
+                + float(order.total_amount)
+            )
+
+    result = []
+
+    for offset in range(7):
+        day = start_date + timedelta(days=offset)
+
+        result.append(
+            {
+                "date": day.isoformat(),
+                "sales": daily_sales.get(day, 0),
+            }
+        )
+
+    return {
+        "success": True,
+        "sales": result,
+    }
+@router.get("/top-products")
+def get_top_products(db: Session = Depends(get_db)):
+    from sqlalchemy import func
+
+    rows = (
+        db.query(
+            Product.name,
+            Product.sku,
+            func.sum(OrderItem.quantity).label("units_sold"),
+            func.sum(OrderItem.subtotal).label("sales"),
+        )
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(Order.status == "approved")
+        .group_by(Product.id, Product.name, Product.sku)
+        .order_by(func.sum(OrderItem.quantity).desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "success": True,
+        "products": [
+            {
+                "name": row.name,
+                "sku": row.sku,
+                "units_sold": int(row.units_sold or 0),
+                "sales": float(row.sales or 0),
+            }
+            for row in rows
+        ],
     }

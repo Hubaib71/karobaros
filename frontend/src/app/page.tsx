@@ -56,6 +56,17 @@ details: string | null;
 created_at: string;
 };
 
+type SalesOverviewItem = {
+date: string;
+sales: number;
+};
+type TopProduct = {
+  name: string;
+  sku: string;
+  units_sold: number;
+  sales: number;
+};
+
 export default function Home() {
 const [summary, setSummary] =
 useState<DashboardSummary | null>(null);
@@ -94,6 +105,12 @@ const [activeAgent, setActiveAgent] = useState<string | null>(null);
 const [agentActivities, setAgentActivities] =
 useState<AgentActivity[]>([]);
 
+const [salesOverview, setSalesOverview] =
+useState<SalesOverviewItem[]>([]);
+
+const [topProducts, setTopProducts] =
+  useState<TopProduct[]>([]);
+
 const [restockRecommendation, setRestockRecommendation] =
 useState<RestockRecommendation | null>(null);
 
@@ -118,6 +135,8 @@ async function loadDashboard() {
       customerHistoryResponse,
       customersResponse,
       agentActivityResponse,
+      salesOverviewResponse,
+      topProductsResponse,
     ] = await Promise.all([
       fetch(
         "http://127.0.0.1:8000/api/dashboard/summary"
@@ -142,6 +161,14 @@ async function loadDashboard() {
       fetch(
         "http://127.0.0.1:8000/api/agent-activity/?limit=12"
       ),
+
+      fetch(
+        "http://127.0.0.1:8000/api/dashboard/sales-overview"
+      ),
+
+      fetch(
+        "http://127.0.0.1:8000/api/dashboard/top-products"
+      ),
     ]);
 
     const summaryData =
@@ -161,6 +188,12 @@ async function loadDashboard() {
 
     const agentActivityData =
       await agentActivityResponse.json();
+
+    const salesOverviewData =
+      await salesOverviewResponse.json();
+
+    const topProductsData =
+      await topProductsResponse.json();
 
     setSummary(summaryData.summary);
 
@@ -183,6 +216,15 @@ async function loadDashboard() {
     setAgentActivities(
       agentActivityData.activities || []
     );
+
+    setSalesOverview(
+      salesOverviewData.sales || []
+    );
+
+    setTopProducts(
+      topProductsData.products || []
+    );
+
   } catch (error) {
     console.error(
       "Failed to load dashboard:",
@@ -293,7 +335,6 @@ await loadDashboard();
   setApprovingOrderId(null);
 }
 
-
 }
 
 async function approveRestock() {
@@ -391,17 +432,22 @@ try {
     );
   }
 
-  setActiveAgent("Sales Agent");
-await new Promise((resolve) => setTimeout(resolve, 300));
+  const agentMap: Record<string, string> = {
+    customer_agent: "Customer",
+    inventory_agent: "Inventory Agent",
+    business_intelligence: "Orchestrator",
+    sales_agent: "Sales Agent",
+    order_agent: "Order Agent",
+    completed: "Order Agent",
+  };
 
-setActiveAgent("Inventory Agent");
-await new Promise((resolve) => setTimeout(resolve, 300));
+  const resolvedAgent =
+    agentMap[data.next_agent] || "Orchestrator";
 
-setActiveAgent("Order Agent");
-await new Promise((resolve) => setTimeout(resolve, 300));
-  setAiResponse(
-    data.message
-  );
+  setActiveAgent(resolvedAgent);
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  setAiResponse(data.message);
 
   if (
     data.restock_recommendation
@@ -446,57 +492,107 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
     {/* Sidebar */}
 
-    <aside className="hidden w-64 flex-col bg-slate-950 text-white md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-white md:flex">
 
       <div className="border-b border-slate-800 px-6 py-6">
 
-        <h1 className="text-2xl font-bold tracking-tight">
-          KarobarOS
-        </h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-lg font-bold text-slate-950">
+            K
+          </div>
 
-        <p className="mt-1 text-sm text-slate-400">
-          AI Business Operating System
-        </p>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight">
+              KarobarOS
+            </h1>
+            <p className="text-[11px] text-slate-500">
+              AI Business OS
+            </p>
+          </div>
+        </div>
 
       </div>
 
-      <nav className="flex-1 px-4 py-6">
+      <nav className="flex-1 px-3 py-5">
 
-        <div className="rounded-xl bg-slate-800 px-4 py-3 font-medium">
+        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+          Workspace
+        </p>
+
+        <div className="flex items-center gap-3 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-sm font-semibold text-emerald-300">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-xs font-bold text-slate-950">
+            01
+          </span>
           Dashboard
         </div>
 
-        <div className="mt-2 rounded-xl px-4 py-3 text-slate-400">
+        <div className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">02</span>
           Products
         </div>
 
-        <div className="mt-2 rounded-xl px-4 py-3 text-slate-400">
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">03</span>
           Inventory
         </div>
 
-        <div className="mt-2 rounded-xl px-4 py-3 text-slate-400">
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">04</span>
           Orders
         </div>
 
-        <div className="mt-2 rounded-xl px-4 py-3 text-slate-400">
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">05</span>
           Customers
         </div>
 
-        <div className="mt-2 rounded-xl px-4 py-3 text-slate-400">
+        <div className="mt-5 px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+          AI & Operations
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">✦</span>
           AI Assistant
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">06</span>
+          Invoices
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition hover:bg-slate-900 hover:text-slate-200">
+          <span className="w-7 text-center text-xs text-slate-600">07</span>
+          Reports
         </div>
 
       </nav>
 
-      <div className="border-t border-slate-800 px-6 py-5">
+      <div className="border-t border-slate-800 p-4">
 
-        <p className="text-sm font-medium">
-          StyleHub PK
-        </p>
+        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-3">
 
-        <p className="mt-1 text-xs text-slate-500">
-          Clothing business
-        </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-white">
+              StyleHub PK
+            </p>
+
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          </div>
+
+          <p className="mt-1 text-xs text-slate-500">
+            Clothing business
+          </p>
+
+          <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-3">
+            <span className="text-[10px] uppercase tracking-wider text-slate-600">
+              System
+            </span>
+            <span className="text-[10px] font-medium text-emerald-400">
+              Online
+            </span>
+          </div>
+
+        </div>
 
       </div>
 
@@ -504,28 +600,49 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
     {/* Main content */}
 
-    <section className="flex-1">
+    <section className="min-w-0 flex-1">
 
       {/* Header */}
 
       <header className="border-b border-slate-200 bg-white px-6 py-5 md:px-8">
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-6">
 
           <div>
-
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Business overview
             </p>
 
-            <h2 className="mt-1 text-2xl font-bold tracking-tight">
-              Good morning, StyleHub PK
-            </h2>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+                Good morning, StyleHub PK
+              </h2>
 
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                AI Online
+              </span>
+            </div>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Your AI-powered business command center.
+            </p>
           </div>
 
-          <div className="hidden rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 sm:block">
-            AI System Online
+          <div className="hidden items-center gap-3 sm:flex">
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Business
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-slate-700">
+                StyleHub PK
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white">
+              SH
+            </div>
+
           </div>
 
         </div>
@@ -628,6 +745,178 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
         </div>
 
+        {/* Sales Overview */}
+
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                Performance
+              </p>
+              <h3 className="mt-1 text-lg font-bold tracking-tight text-slate-950">
+                Sales Overview
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Approved sales over the last 7 days.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                7-day sales
+              </p>
+              <p className="mt-0.5 text-sm font-bold text-slate-900">
+                Rs. {salesOverview
+                  .reduce((total, item) => total + item.sales, 0)
+                  .toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 h-64">
+            {salesOverview.length > 0 ? (
+              <div className="flex h-full items-end gap-2 sm:gap-3">
+                {salesOverview.map((item) => {
+                  const maxSales = Math.max(
+                    ...salesOverview.map((entry) => entry.sales),
+                    1
+                  );
+
+                  const height =
+                    item.sales === 0
+                      ? 4
+                      : Math.max((item.sales / maxSales) * 100, 8);
+
+                  const label = new Date(
+                    item.date + "T00:00:00"
+                  ).toLocaleDateString("en-US", {
+                    weekday: "short",
+                  });
+
+                  return (
+                    <div
+                      key={item.date}
+                      className="flex h-full flex-1 flex-col justify-end"
+                    >
+                      <div className="mb-2 text-center text-[10px] font-semibold text-slate-500">
+                        {item.sales > 0
+                          ? "Rs. " +
+                            item.sales.toLocaleString()
+                          : ""}
+                      </div>
+
+                      <div className="flex h-full items-end">
+                        <div
+                          className="w-full rounded-t-xl bg-emerald-500/85 transition-all duration-500 hover:bg-emerald-500"
+                          style={{ height: `${height}%` }}
+                          title={`${item.date}: Rs. ${item.sales.toLocaleString()}`}
+                        />
+                      </div>
+
+                      <p className="mt-2 text-center text-[10px] font-medium text-slate-400">
+                        {label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-xl bg-slate-50">
+                <p className="text-sm text-slate-400">
+                  No sales data available yet.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Top Selling Products */}
+
+<div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+  <div className="flex items-end justify-between gap-4">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+        Product performance
+      </p>
+      <h3 className="mt-1 text-lg font-bold tracking-tight text-slate-950">
+        Top Selling Products
+      </h3>
+      <p className="mt-1 text-sm text-slate-500">
+        Best-performing products based on approved orders.
+      </p>
+    </div>
+
+    <div className="hidden rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 sm:block">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+        Products
+      </p>
+      <p className="mt-0.5 text-sm font-bold text-slate-900">
+        {topProducts.length}
+      </p>
+    </div>
+  </div>
+
+  <div className="mt-5 space-y-3">
+    {topProducts.length > 0 ? (
+      topProducts.map((product, index) => (
+        <div
+          key={product.sku}
+          className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-slate-200 hover:bg-slate-50"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-xs font-bold text-white">
+            {index + 1}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900">
+                  {product.name}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {product.sku}
+                </p>
+              </div>
+
+              <div className="sm:text-right">
+                <p className="text-sm font-bold text-slate-900">
+                  Rs. {product.sales.toLocaleString()}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {product.units_sold} units sold
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                style={{
+                  width: `${
+                    (product.units_sold /
+                      Math.max(
+                        ...topProducts.map(
+                          (item) => item.units_sold
+                        ),
+                        1
+                      )) *
+                    100
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ))
+    ) : (
+      <div className="flex min-h-32 items-center justify-center rounded-xl bg-slate-50">
+        <p className="text-sm text-slate-400">
+          No approved product sales yet.
+        </p>
+      </div>
+    )}
+  </div>
+</div>
+
         {/* Approval message */}
 
         {approvalMessage && (
@@ -647,314 +936,414 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
           {/* Recent Orders */}
 
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+<div className="rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
 
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+  <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
 
-              <div>
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+        Customer activity
+      </p>
 
-                <h3 className="font-semibold">
-                  Recent Orders
-                </h3>
+      <h3 className="mt-1 text-lg font-bold tracking-tight text-slate-950">
+        Recent Orders
+      </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Latest customer activity
-                </p>
+      <p className="mt-1 text-sm text-slate-500">
+        Latest orders and approval activity
+      </p>
+    </div>
+
+    <div className="flex items-center gap-2">
+      <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+
+      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+        Live
+      </span>
+    </div>
+
+  </div>
+
+  <div className="overflow-x-auto">
+
+    <table className="w-full min-w-[900px] text-left text-sm">
+
+      <thead className="border-b border-slate-100 bg-slate-50/80">
+
+        <tr>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Order
+          </th>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Customer
+          </th>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            City
+          </th>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Amount
+          </th>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Invoice
+          </th>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Status
+          </th>
+
+          <th className="px-6 py-3.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Action
+          </th>
+
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        {orders.map((order) => (
+
+          <tr
+            key={order.id}
+            className="border-t border-slate-100 transition-colors hover:bg-slate-50/70"
+          >
+
+            <td className="px-6 py-4">
+
+              <p className="font-semibold text-slate-900">
+                {order.order_number}
+              </p>
+
+              <p className="mt-1 text-[11px] text-slate-400">
+                Order #{order.id}
+              </p>
+
+            </td>
+
+            <td className="px-6 py-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white">
+                  {order.customer_name
+                    ? order.customer_name
+                        .split(" ")
+                        .map((name) => name[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()
+                    : "CU"}
+                </div>
+
+                <div>
+
+                  <p className="font-semibold text-slate-900">
+                    {order.customer_name}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    Customer #{order.customer_id}
+                  </p>
+
+                </div>
 
               </div>
 
-              <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                Live
+            </td>
+
+            <td className="px-6 py-4">
+
+              <span className="text-sm font-medium text-slate-600">
+                {order.delivery_city}
               </span>
 
-            </div>
+            </td>
 
-            <div className="overflow-x-auto">
+            <td className="px-6 py-4">
 
-              <table className="w-full text-left text-sm">
+              <p className="font-bold text-slate-900">
+                Rs. {order.total_amount.toLocaleString()}
+              </p>
 
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            </td>
 
-                  <tr>
+            <td className="px-6 py-4">
 
-                    <th className="px-6 py-3">
-                      Order
-                    </th>
+              {order.invoice_number ? (
 
-                    <th className="px-6 py-3">
-                      Customer
-                    </th>
+                <span className="inline-flex rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  {order.invoice_number}
+                </span>
 
-                    <th className="px-6 py-3">
-                      City
-                    </th>
+              ) : (
 
-                    <th className="px-6 py-3">
-                      Amount
-                    </th>
+                <span className="text-xs font-medium text-slate-400">
+                  Not generated
+                </span>
 
-                    <th className="px-6 py-3">
-                      Invoice
-                    </th>
+              )}
 
-                    <th className="px-6 py-3">
-                      Status
-                    </th>
+            </td>
 
-                    <th className="px-6 py-3">
-                      Action
-                    </th>
+            <td className="px-6 py-4">
 
-                  </tr>
+              <span
+                className={
+                  "inline-flex rounded-full px-3 py-1 text-[11px] font-semibold capitalize " +
+                  (
+                    order.status === "approved"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : order.status === "rejected"
+                        ? "bg-red-50 text-red-700"
+                        : "bg-amber-50 text-amber-700"
+                  )
+                }
+              >
+                {order.status.replace("_", " ")}
+              </span>
 
-                </thead>
+            </td>
 
-                <tbody>
+            <td className="px-6 py-4">
 
-                  {orders.map(
-                    (order) => (
-                      <tr
-                        key={order.id}
-                        className="border-t border-slate-100"
-                      >
+              {order.status === "pending_approval" ? (
 
-                        <td className="px-6 py-4 font-medium">
-                          {order.order_number}
-                        </td>
+                <div className="flex items-center gap-2">
 
-                        <td className="px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => approveOrder(order.id)}
+                    disabled={
+                      approvingOrderId !== null ||
+                      rejectingOrderId !== null
+                    }
+                    className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {approvingOrderId === order.id
+                      ? "Approving..."
+                      : "Approve"}
+                  </button>
 
-                          <div className="font-medium">
-                            {order.customer_name}
-                          </div>
+                  <button
+                    type="button"
+                    onClick={() => rejectOrder(order.id)}
+                    disabled={
+                      approvingOrderId !== null ||
+                      rejectingOrderId !== null
+                    }
+                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {rejectingOrderId === order.id
+                      ? "Rejecting..."
+                      : "Reject"}
+                  </button>
 
-                          <div className="mt-1 text-xs text-slate-400">
-                            Customer #
-                            {order.customer_id}
-                          </div>
+                </div>
 
-                        </td>
+              ) : (
 
-                        <td className="px-6 py-4 text-slate-600">
-                          {order.delivery_city}
-                        </td>
+                <span className="text-xs font-medium text-slate-400">
+                  Completed
+                </span>
 
-                        <td className="px-6 py-4 font-medium">
-                          Rs.{" "}
-                          {order.total_amount.toLocaleString()}
-                        </td>
+              )}
 
-                        <td className="px-6 py-4">
+            </td>
 
-                          {order.invoice_number ? (
+          </tr>
 
-                            <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                              {order.invoice_number}
-                            </span>
+        ))}
 
-                          ) : (
+        {!loading && orders.length === 0 && (
 
-                            <span className="text-xs text-slate-400">
-                              Not generated
-                            </span>
+          <tr>
 
-                          )}
+            <td
+              colSpan={7}
+              className="px-6 py-12 text-center"
+            >
 
-                        </td>
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                —
+              </div>
 
-                        <td className="px-6 py-4">
+              <p className="mt-3 text-sm font-medium text-slate-600">
+                No orders yet
+              </p>
 
-                          <span
-                            className={
-                              "rounded-full px-3 py-1 text-xs font-medium " +
-                              (
-                                order.status ===
-                                "approved"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : order.status ===
-                                  "rejected"
-                                    ? "bg-red-50 text-red-700"
-                                    : "bg-amber-50 text-amber-700"
-                              )
-                            }
-                          >
-                            {order.status.replace(
-                              "_",
-                              " "
-                            )}
-                          </span>
+              <p className="mt-1 text-xs text-slate-400">
+                Customer orders will appear here.
+              </p>
 
-                        </td>
+            </td>
 
-                        <td className="px-6 py-4">
+          </tr>
 
-                          {order.status ===
-                          "pending_approval" ? (
+        )}
 
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  approveOrder(
-                                    order.id
-                                  )
-                                }
-                                disabled={
-                                  approvingOrderId !== null ||
-                                  rejectingOrderId !== null
-                                }
-                                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {approvingOrderId ===
-                                order.id
-                                  ? "Approving..."
-                                  : "Approve"}
-                              </button>
+      </tbody>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  rejectOrder(
-                                    order.id
-                                  )
-                                }
-                                disabled={
-                                  approvingOrderId !== null ||
-                                  rejectingOrderId !== null
-                                }
-                                className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {rejectingOrderId ===
-                                order.id
-                                  ? "Rejecting..."
-                                  : "Reject"}
-                              </button>
-                            </div>
+    </table>
 
-                          ) : (
+  </div>
 
-                            <span className="text-xs text-slate-400">
-                              Completed
-                            </span>
-
-                          )}
-
-                        </td>
-
-                      </tr>
-                    )
-                  )}
-
-                  {!loading &&
-                    orders.length ===
-                      0 && (
-
-                      <tr>
-
-                        <td
-                          colSpan={7}
-                          className="px-6 py-8 text-center text-slate-500"
-                        >
-                          No orders yet.
-                        </td>
-
-                      </tr>
-                    )}
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-          </div>
+</div>
 
           {/* Low Stock */}
 
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+<div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-            <div className="border-b border-slate-200 px-6 py-5">
+  {/* Low Stock Header */}
 
-              <h3 className="font-semibold">
-                Low Stock Alerts
-              </h3>
+  <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
 
-              <p className="mt-1 text-sm text-slate-500">
-                Inventory requiring attention
-              </p>
+    <div>
 
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+        Inventory health
+      </p>
+
+      <h3 className="mt-1 text-lg font-bold tracking-tight text-slate-950">
+        Low Stock Alerts
+      </h3>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Inventory requiring attention
+      </p>
+
+    </div>
+
+    <span className="shrink-0 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">
+      {lowStockItems.length} alert
+      {lowStockItems.length === 1 ? "" : "s"}
+    </span>
+
+  </div>
+
+  {/* Low Stock Items */}
+
+  <div className="divide-y divide-slate-100">
+
+    {lowStockItems.map((item) => {
+
+      const stockPercentage = Math.min(
+        (item.quantity / item.low_stock_threshold) * 100,
+        100
+      );
+
+      const severity =
+        item.quantity <=
+        Math.ceil(item.low_stock_threshold * 0.5)
+          ? "Critical"
+          : "Low";
+
+      return (
+
+        <div
+          key={item.product_id}
+          className="px-6 py-5 transition-colors hover:bg-slate-50/70"
+        >
+
+          <div className="flex items-start gap-4">
+
+            {/* Alert Icon */}
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-sm font-bold text-red-600">
+              !
             </div>
 
-            <div className="divide-y divide-slate-100">
+            {/* Product Information */}
 
-              {lowStockItems.map(
-                (item) => (
+            <div className="min-w-0 flex-1">
+
+              <div className="flex items-start justify-between gap-3">
+
+                <div className="min-w-0">
+
+                  <p className="truncate text-sm font-semibold text-slate-900">
+                    {item.name}
+                  </p>
+
+                  <p className="mt-1 text-xs font-medium text-slate-400">
+                    SKU · {item.sku}
+                  </p>
+
+                </div>
+
+                <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-700">
+                  {severity}
+                </span>
+
+              </div>
+
+              {/* Stock Numbers */}
+
+              <div className="mt-4 flex items-end justify-between">
+
+                <div>
+
+                  <p className="text-xs font-medium text-slate-400">
+                    Available stock
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold tracking-tight text-slate-950">
+                    {item.quantity}
+
+                    <span className="ml-1 text-xs font-medium text-slate-400">
+                      units
+                    </span>
+
+                  </p>
+
+                </div>
+
+                <div className="text-right">
+
+                  <p className="text-xs font-medium text-slate-400">
+                    Alert threshold
+                  </p>
+
+                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                    {item.low_stock_threshold} units
+                  </p>
+
+                </div>
+
+              </div>
+
+              {/* Stock Progress */}
+
+              <div className="mt-3">
+
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+
                   <div
-                    key={item.product_id}
-                    className="px-6 py-5"
-                  >
+                    className="h-full rounded-full bg-red-500 transition-all duration-500"
+                    style={{
+                      width: `${stockPercentage}%`,
+                    }}
+                  />
 
-                    <div className="flex items-start justify-between gap-4">
+                </div>
 
-                      <div>
+                <div className="mt-2 flex items-center justify-between">
 
-                        <p className="font-medium">
-                          {item.name}
-                        </p>
+                  <span className="text-[10px] font-medium text-red-600">
+                    {Math.round(stockPercentage)}% of threshold
+                  </span>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.sku}
-                        </p>
+                  <span className="text-[10px] font-medium text-slate-400">
+                    Needs attention
+                  </span>
 
-                      </div>
+                </div>
 
-                      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                        {item.quantity} left
-                      </span>
-
-                    </div>
-
-                    <div className="mt-3">
-
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-
-                        <div
-                          className="h-full rounded-full bg-red-500"
-                          style={{
-                            width:
-                              Math.min(
-                                (item.quantity /
-                                  item.low_stock_threshold) *
-                                  100,
-                                100
-                              ) +
-                              "%",
-                          }}
-                        />
-
-                      </div>
-
-                      <p className="mt-2 text-xs text-slate-500">
-                        Threshold:{" "}
-                        {
-                          item.low_stock_threshold
-                        }
-                      </p>
-
-                    </div>
-
-                  </div>
-                )
-              )}
-
-              {!loading &&
-                lowStockItems.length ===
-                  0 && (
-
-                  <div className="px-6 py-8 text-center text-sm text-slate-500">
-                    All inventory levels are healthy.
-                  </div>
-                )}
+              </div>
 
             </div>
 
@@ -962,6 +1351,37 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
         </div>
 
+      );
+
+    })}
+
+    {/* Empty State */}
+
+    {!loading && lowStockItems.length === 0 && (
+
+      <div className="px-6 py-12 text-center">
+
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+          ✓
+        </div>
+
+        <p className="mt-3 text-sm font-semibold text-slate-700">
+          Inventory looks healthy
+        </p>
+
+        <p className="mt-1 text-xs text-slate-400">
+          No products currently require restocking.
+        </p>
+
+      </div>
+
+    )}
+
+  </div>
+
+</div>
+
+                
         {/* AI Assistant */}
 
         <div className="mt-6 overflow-hidden rounded-2xl bg-slate-950 text-white shadow-sm">
@@ -1340,8 +1760,6 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
 
       </div>
 
-    </section>
-
   </div>
 
       <section className="mt-8">
@@ -1472,48 +1890,92 @@ return ( <main className="min-h-screen bg-slate-100 text-slate-900"> <div classN
             </div>
           )}
         </div>
-      </section>
+        </section>
+
+</section>
+
+</div>
 
 </main>
-
 
 );
 }
 
 function StatCard({
-title,
-value,
-description,
-alert = false,
+  title,
+  value,
+  description,
+  alert = false,
 }: {
-title: string;
-value: string;
-description: string;
-alert?: boolean;
+  title: string;
+  value: string;
+  description: string;
+  alert?: boolean;
 }) {
-return ( <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+  const icon =
+    title === "Total Sales"
+      ? "Rs"
+      : title === "Orders"
+      ? "#"
+      : title === "Products"
+      ? "P"
+      : title === "Low Stock"
+      ? "!"
+      : title === "Avg. Order Value"
+      ? "↗"
+      : "%";
 
+  return (
+    <div
+      className={
+        "group relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md " +
+        (alert
+          ? "border-red-200/80 bg-gradient-to-br from-white to-red-50/50"
+          : "border-slate-200")
+      }
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+            {title}
+          </p>
 
-  <p className="text-sm font-medium text-slate-500">
-    {title}
-  </p>
+          <p
+            className={
+              "mt-3 text-2xl font-bold tracking-tight sm:text-3xl " +
+              (alert ? "text-red-600" : "text-slate-950")
+            }
+          >
+            {value}
+          </p>
+        </div>
 
-  <p
-    className={
-      "mt-3 text-3xl font-bold tracking-tight " +
-      (alert
-        ? "text-red-600"
-        : "text-slate-900")
-    }
-  >
-    {value}
-  </p>
+        <div
+          className={
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold " +
+            (alert
+              ? "bg-red-100 text-red-600"
+              : "bg-slate-100 text-slate-700")
+          }
+        >
+          {icon}
+        </div>
+      </div>
 
-  <p className="mt-2 text-sm text-slate-500">
-    {description}
-  </p>
+      <div className="mt-4 flex items-center gap-2">
+        <span
+          className={
+            "h-1.5 w-1.5 rounded-full " +
+            (alert ? "bg-red-500" : "bg-emerald-500")
+          }
+        />
 
-</div>
+        <p className="text-xs font-medium text-slate-500">
+          {description}
+        </p>
+      </div>
 
-);
+      <div className="absolute -bottom-10 -right-10 h-24 w-24 rounded-full bg-slate-100/70 blur-2xl transition-all duration-300 group-hover:bg-emerald-100/70" />
+    </div>
+  );
 }
